@@ -1,0 +1,6 @@
+services:
+  haeda:
+    image: haeda
+    build:
+      context: .
+      dockerfile: ./Dockerfile
