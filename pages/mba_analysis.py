@@ -125,26 +125,44 @@ def market_basket_analysis(df, analysis_level='product', min_support=0.01, min_c
 
 
 def run():
-    """
-    Main function to run the Streamlit application.
-    """
     st.title("🛒 Market Basket Analysis")
     st.markdown("""
-    Upload a CSV file with your transaction data to discover association rules.
-    The file must contain at least columns for **transaction ID** and **item/product**. 
-    A **category** column is optional.
+                This tool helps you uncover hidden patterns in your sales data.
+                By analyzing transactions, it identifies products or categories that are frequently purchased together. 
+                Use the results to analyze the effectiveness of promotions, cross-selling opportunities, and to find customer preferences.
+
+                The resulting table shows the most significant associations, ranked by lift, confidence, and support.
     """)
+    with st.expander("How to interpret the results", expanded=False):
+        # Alle content die je hieronder plaatst (met inspringing)
+        # verschijnt BINNEN de uitklapbare sectie.
+        st.markdown("""
+            To interpret the results, think of each rule as an "if-then" statement: If a customer buys the Antecedent, then they are also likely to buy the Consequent.
+
+            Explanation of the terms used:
+            - **Antecedents**: The "if..." part of the rule. This is the item or set of items found in a basket.
+            - **Consequents**: The "...then" part of the rule. This is the item or set of items also found in the basket.
+            - **Support** (popularity): How frequently the combination appears in all transactions.
+            - **Confidence** (reliability): The probability that, if a customer buys the antecedent, the consequent will also be purchased.
+            - **Lift** (strength): Measures how much more often A and B occur together than expected if they were statistically independent.
+        """)
+    st.markdown("""
+                Upload a CSV file with your transaction data to discover association rules.
+                The file must contain at least columns for **transaction ID** and **item/product**. 
+                A **category** column is optional.
+    """)
+    st.write("")
 
     # Provide a correct template for download
     template_df = pd.DataFrame({
-        "TransactionID": ["Can be any string, for example:", "1-NDINV00", "10052456", "10254BE"],
-        "Item": ["Product name or SKU as a string, for example:", "1-bc054", "Men's Jacket Size M", "Butter"],
-        "Category": ["Must be a string, for example:", "Video games", "Men's wear", "Dairy"]
+        "transaction_id": ["Can be any string or number", "1-NDINV00", "10052456", "10254BE"],
+        "item": ["Product name or SKU as a string", "1-bc054", "Men's Jacket Size M", "Butter"],
+        "category": ["Can be any string", "Video games", "Men's wear", "Dairy"]
     })
     
     st.download_button(
         label="Download CSV Template",
-        data=template_df.to_csv(index=False, sep=';').encode('utf-8'),
+        data=template_df.to_csv(index=False).encode('utf-8'),
         file_name="mba_template.csv",
         mime="text/csv"
     )
@@ -182,9 +200,25 @@ def run():
             level_options.append('category')
         
         level = st.sidebar.selectbox("Analyze at level:", level_options)
-        min_support = st.sidebar.slider("Minimum support:", 0.001, 0.5, 0.01, step=0.001, format="%.3f")
-        min_confidence = st.sidebar.slider("Minimum confidence:", 0.01, 1.0, 0.1, step=0.01)
-        min_lift = st.sidebar.slider("Minimum lift:", 1.0, 10.0, 1.0, step=0.1)
+        min_support = st.sidebar.slider("Minimum support:", 
+                                        0.001, 
+                                        0.5, 
+                                        0.01, 
+                                        step=0.001, 
+                                        format="%.3f", 
+                                        help="How frequently an itemset (e.g., {Game console, Video game X}) appears in all transactions. A minimum support of 0.02 means the itemset must appear in at least 2% of all transactions.")
+        min_confidence = st.sidebar.slider("Minimum confidence:", 
+                                           0.01, 
+                                           1.0, 
+                                           0.1, 
+                                           step=0.01, 
+                                           help="The conditional probability. For a rule 'If A then B', confidence is P(B|A). A minimum confidence of 0.6 means that in 60% of the transactions containing A, B is also present.")
+        min_lift = st.sidebar.slider("Minimum lift:", 
+                                     1.0, 
+                                     10.0, 
+                                     1.0, 
+                                     step=0.1, 
+                                     help="Measures how much more often A and B occur together than expected if they were statistically independent. A lift of 1 means A and B are independent. A lift > 1 means they are positively correlated.")
 
         if st.sidebar.button("Analyze"):
             with st.spinner("Analysis in progress..."):
@@ -196,21 +230,34 @@ def run():
                     min_lift=min_lift
                 )
             
-            st.info("Analysis Log:")
+            analysis_log = st.empty()
+            logged_messages = []
             for msg in messages:
-                st.text(msg)
-            
+                logged_messages.append(str(msg))
+                log_string = "### Analysis Log\n\n" + "\n\n- ".join(logged_messages)
+                analysis_log.info(log_string)
+
             if not mba_results.empty:
-                st.header(f"Analysis Results (per {level.capitalize()})")
+                st.header(f"Analysis Results ({level.capitalize()} level)")
                 
                 # Format for display
                 display_results = mba_results.copy()
                 display_results['antecedents'] = display_results['antecedents'].apply(lambda x: ', '.join(list(x)))
                 display_results['consequents'] = display_results['consequents'].apply(lambda x: ', '.join(list(x)))
+                display_results.reset_index(drop=True, inplace=True)
+                display_results.insert(0, 'Rank', display_results.index + 1)
                 
-                st.dataframe(display_results[[
-                    'antecedents', 'consequents', 'support', 'confidence', 'lift'
-                ]].round(4))
+                st.dataframe(
+                    display_results[[
+                        'Rank', 'antecedents', 'consequents', 'support', 'confidence', 'lift'
+                    ]],
+                    hide_index=True,
+                    column_config={
+                        "support": st.column_config.NumberColumn(format="%.4f"),
+                        "confidence": st.column_config.NumberColumn(format="%.4f"),
+                        "lift": st.column_config.NumberColumn(format="%.4f"),
+                    }
+                )
                 
                 # Conclusion for the top rule
                 st.header("Explanation of the Strongest Rule")
@@ -221,11 +268,10 @@ def run():
                 confidence = top_rule['confidence']
                 lift = top_rule['lift']
 
-                st.markdown("### Strongest Rule Found:")
-                st.markdown(f"The combination of **'{antecedents}'** and **'{consequents}'** is frequently bought together.")
-                st.markdown(f"-> This combination appears in **{support * 100:.2f}%** of all transactions.")
-                st.markdown(f"-> If a customer buys '{antecedents}', there is a **{confidence * 100:.2f}%** chance they will also buy '{consequents}'.")
-                st.markdown(f"-> This happens **{lift:.2f} times more often** than would be expected by chance.")
+                st.markdown(f"The combination of **'{antecedents}'** and **'{consequents}'** is bought together the most.")
+                st.markdown(f"- This combination appears in **{support * 100:.2f}%** of all transactions.")
+                st.markdown(f"- If a customer buys '{antecedents}', there is a **{confidence * 100:.2f}%** chance they will also buy '{consequents}'.")
+                st.markdown(f"- This happens **{lift:.2f} times more often** than would be expected by chance.")
             else:
                 st.warning("\nNo association rules found with the current parameters.")
 

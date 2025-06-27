@@ -16,11 +16,10 @@ st.write("""
 This is the main page for the Advanced Exploratory Data Analysis Toolkit. You can navigate to individual apps using the sidebar.
 
 ### What you're looking at
-This toolkit has been created for the purposes of analyzing data from online controlled experiments ('A/B tests') to learn from and better understand user behavior.  
+This collection of tools makes it easy to analyze and visualize data from various sources, without the need for complex coding or data manipulation. Each tool is designed to help you quickly gain insights from your data.
 
 ### Features
-<span style='color:#009900; font-weight: 600; margin-right: 6px;'>&#10003;</span>**Market Basket analysis**: Find frequently bought combinations<br>
-
+<span style='color:#009900; font-weight: 600; margin-right: 6px;'>&#10003;</span>**Market Basket analysis**: Find frequently bought combinations on product / category level<br>
 
 ### How to Use
 - Select a page from the sidebar to view different tools.
