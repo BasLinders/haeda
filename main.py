@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="Advanced Exploratory Data Analysis Toolkit",
+    page_title="Advanced Exploratory Data Analysis",
     page_icon="📈",
     initial_sidebar_state="expanded"
 )
@@ -10,7 +10,7 @@ st.set_page_config(
 logo_url = "https://cdn.homerun.co/49305/hh-woordmerk-rgb-blue-met-discriptor1666785216logo.png"
 st.image(logo_url, width=200)
 
-st.title("Advanced Exploratory Data Analysis Toolkit")
+st.title("Advanced Exploratory Data Analysis")
 st.write("### <span style='color: orange;'>v0.0.1 (beta)</span>", unsafe_allow_html=True)
 st.write("""
 This is the main page for the Advanced Exploratory Data Analysis Toolkit. You can navigate to individual apps using the sidebar.
