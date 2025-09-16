@@ -20,6 +20,7 @@ This collection of tools makes it easy to analyze and visualize data from variou
 
 ### Features
 <span style='color:#009900; font-weight: 600; margin-right: 6px;'>&#10003;</span>**Market Basket analysis**: Find frequently bought combinations on product / category level<br>
+<span style='color:#009900; font-weight: 600; margin-right: 6px;'>&#10003;</span>**Process mining**: Reconstruct the customer journey (in development)<br>
 
 ### How to Use
 - Select a page from the sidebar to view different tools.
