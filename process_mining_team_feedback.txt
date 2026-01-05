@@ -1,0 +1,27 @@
+// --- Process Mining team vragen ---
+- Kunnen we detecteren wat de impact is van fouten die worden getoond? (javascript errors)
+- Meerdere bronnen in de upload gebruiken?
+- Kan de petri net worden uitgesplitst in kleinere, overzichtelijkere paden?
+- Hoe vaak klikt men terug / over-en-weer tussen paginatypen?
+- Bottlenecks visualiseren?
+- Happy paths visualiseren?
+- Herhaalaankopen inzichtelijk te maken?
+- Retouren inzichtelijk maken?
+- Cart abandonment inzichtelijk maken?
+- Impact van up- en cross-sells?
+- Snelheid van converteren van lead/transactie?
+- Kunnen we inschatten wat de meest effectieve landingspagina's zijn?
+    - en welke zijn niet effectief?
+- User id's over langere periode volgen, is dat mogelijk?
+- Wat is bijvoorbeeld de journey van social ads ten opzichte van google ads?
+- Highlighten van traces in de petri net, is dat mogelijk?
+- KPI's definieren op basis van de output (hoeveel PDP bekijkt men voor conversie, etc)
+- Kunnen we product- en categoriespecifieke data gebruiken / tonen?
+    - na welke bekeken producten haakt men het meeste af?
+- Ratio's aan elkaar linken (add-to-cart rate hoger binnen bepaald pad leidt tot meer conversie)
+- Segmentatie als onderwerp over de data (device, sessiebron/medium, etc)
+- ARPPU, kan dit worden gekoppeld en 'meegenomen' in de resultaten/conclusies?
+    - dit linken aan traces / segmentatie
+- Welke landingspagina's leiden tot meer omzet/winst (wat zit hier tussen)?
+- Aankopen indelen op productcategorie, is dat mogelijk?
+- Omgekeerde padverkenning, hoe komt dat in resultaten terug?
