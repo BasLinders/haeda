@@ -24,3 +24,5 @@
 -Which landing pages lead to higher revenue/profit (and what happens in between)?
 - Is it possible to categorize purchases by product category?
 - Reverse path exploration: how is this reflected in the results?
+
+Grouped feedback: https://docs.google.com/spreadsheets/d/1QwjV58l5jN0H7Tjft7oVSCPYO7yY8nRPJnR3oe3sEt0/edit?gid=207073239#gid=207073239
