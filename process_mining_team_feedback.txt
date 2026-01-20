@@ -1,27 +1,26 @@
-// --- Process Mining team vragen ---
-- Kunnen we detecteren wat de impact is van fouten die worden getoond? (javascript errors)
-- Meerdere bronnen in de upload gebruiken?
-- Kan de petri net worden uitgesplitst in kleinere, overzichtelijkere paden?
-- Hoe vaak klikt men terug / over-en-weer tussen paginatypen?
-- Bottlenecks visualiseren?
-- Happy paths visualiseren?
-- Herhaalaankopen inzichtelijk te maken?
-- Retouren inzichtelijk maken?
-- Cart abandonment inzichtelijk maken?
-- Impact van up- en cross-sells?
-- Snelheid van converteren van lead/transactie?
-- Kunnen we inschatten wat de meest effectieve landingspagina's zijn?
-    - en welke zijn niet effectief?
-- User id's over langere periode volgen, is dat mogelijk?
-- Wat is bijvoorbeeld de journey van social ads ten opzichte van google ads?
-- Highlighten van traces in de petri net, is dat mogelijk?
-- KPI's definieren op basis van de output (hoeveel PDP bekijkt men voor conversie, etc)
-- Kunnen we product- en categoriespecifieke data gebruiken / tonen?
-    - na welke bekeken producten haakt men het meeste af?
-- Ratio's aan elkaar linken (add-to-cart rate hoger binnen bepaald pad leidt tot meer conversie)
-- Segmentatie als onderwerp over de data (device, sessiebron/medium, etc)
-- ARPPU, kan dit worden gekoppeld en 'meegenomen' in de resultaten/conclusies?
-    - dit linken aan traces / segmentatie
-- Welke landingspagina's leiden tot meer omzet/winst (wat zit hier tussen)?
-- Aankopen indelen op productcategorie, is dat mogelijk?
-- Omgekeerde padverkenning, hoe komt dat in resultaten terug?
+- Can we detect the impact of displayed errors (JavaScript errors)?
+- Can we use multiple sources in the upload?
+- Can the Petri net be broken down into smaller, clearer paths?
+- How often do users click back / toggle back-and-forth between page types?
+- Visualize bottlenecks?
+- Visualize happy paths?
+- Gain insights into repeat purchases?
+- Gain insights into returns?
+- Gain insights into cart abandonment?
+- Impact of up- and cross-sells?
+- Speed of lead/transaction conversion?
+- Can we estimate which landing pages are the most effective?
+- And which ones are ineffective?
+- Is it possible to track User IDs over a longer period?
+- For example, what is the journey of social ads compared to Google Ads?
+- Is it possible to highlight traces in the Petri net?
+- Define KPIs based on the output (e.g., how many PDPs [Product Detail Pages] are viewed before conversion)?
+- Can we use/display product- and category-specific data?
+- After viewing which products do users drop off the most?
+- Link ratios together (e.g., does a higher add-to-cart rate within a specific path lead to more conversion?)
+- Apply segmentation to the data (device, session source/medium, etc.)?
+- Can ARPPU (Average Revenue Per Paying User) be linked and included in the results/conclusions?
+- Link this to traces/segmentation?
+-Which landing pages lead to higher revenue/profit (and what happens in between)?
+- Is it possible to categorize purchases by product category?
+- Reverse path exploration: how is this reflected in the results?
