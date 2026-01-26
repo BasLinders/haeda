@@ -466,14 +466,6 @@ def run():
 
             st.subheader("Customer Insights Table")
             st.dataframe(style_rfm_table(final_report), use_container_width=True)
-            
-            # Visuals
-            st.subheader("Visual Analytics")
-            c1, c2 = st.columns(2)
-            with c1:
-                st.plotly_chart(plotCustomers(final_report), use_container_width=True, key='customers_3d_top')
-            with c2:
-                st.plotly_chart(plotSegmentDistribution(final_report), use_container_width=True, key='segment_tree_top')
                 
             # Download Button for the processed data
             csv = final_report.to_csv().encode('utf-8')
