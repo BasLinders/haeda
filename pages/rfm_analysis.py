@@ -508,19 +508,44 @@ def run():
                 segment_analysis = segment_analysis.sort_values('clv', ascending=False)
                 
                 # Key Metrics Row
-                col1, col2, col3 = st.columns(3)
-                col1.metric("Highest Avg CLV Segment", 
-                          f"{segment_analysis.iloc[0]['Segment']}",
-                          f"€{segment_analysis.iloc[0]['clv']:,.0f}")
+                st.subheader("Actionable Customer Lists")
                 
-                # Find the segment with the highest churn risk (lowest p_alive)
-                highest_risk = segment_analysis.sort_values('p_alive').iloc[0]
-                col2.metric("Highest Churn Risk", 
-                          f"{highest_risk['Segment']}",
-                          f"{(1 - highest_risk['p_alive']):.1%} Churn Prob")
+                col1, col2 = st.columns(2)
                 
-                col3.metric("Total Forecasted Revenue", 
-                          f"€{final_report['clv'].sum():,.0f}")
+                with col1:
+                    st.markdown("#### Top 5 MVPs (Highest CLV)")
+                    # Sort by CLV descending
+                    top_clv = final_report.sort_values('clv', ascending=False).head(5)
+                    
+                    # Create a clean display table
+                    st.dataframe(
+                        top_clv[['clv', 'predicted_purchases', 'Segment']]
+                        .style.format({'clv': '€{:.2f}', 'predicted_purchases': '{:.2f}'}),
+                        use_container_width=True
+                    )
+                    st.caption("These 5 customers are predicted to generate the most revenue in the next 12 months.")
+
+                with col2:
+                    st.markdown("#### Top 5 At-Risk VIPs")
+                    # LOGIC: Filter for customers with High Monetary value (> 75th percentile) 
+                    # but Low P(Alive) (< 50%)
+                    high_value_mask = final_report['Monetary'] > final_report['Monetary'].quantile(0.75)
+                    at_risk_mask = final_report['p_alive'] < 0.5
+                    
+                    risky_vips = final_report[high_value_mask & at_risk_mask]
+                    
+                    # Sort by Monetary (past spend) to find the biggest potential losses
+                    risky_vips = risky_vips.sort_values('Monetary', ascending=False).head(5)
+                    
+                    if not risky_vips.empty:
+                        st.dataframe(
+                            risky_vips[['p_alive', 'Monetary', 'Segment']]
+                            .style.format({'p_alive': '{:.1%}', 'Monetary': '€{:.2f}'}),
+                            use_container_width=True
+                        )
+                        st.caption("These are high-spenders showing signs of churn. **Contact them immediately.**")
+                    else:
+                        st.success("No high-value churn risk detected right now.")
 
                 st.divider()
 
