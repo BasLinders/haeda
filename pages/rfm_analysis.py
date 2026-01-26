@@ -23,7 +23,7 @@ def generate_mock_data():
     start_date = end_date - dt.timedelta(days=730)
     
     for i in range(n_customers):
-        customer_id = f"CUST-{1000 + i}"
+        customer_id = f"CUST-{10000 + i}"
         
         # Decide Churn Status (30% are Lost)
         is_churned = np.random.choice([True, False], p=[0.3, 0.7])
