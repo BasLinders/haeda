@@ -16,60 +16,73 @@ st.set_page_config(
 def generate_mock_data():
     """Generates synthetic transaction data with explicit churn patterns."""
     np.random.seed(42)
-    n_customers = 5000
+    n_customers = 2000 
     data = []
     
     end_date = dt.datetime.now()
     start_date = end_date - dt.timedelta(days=730)
     
     for i in range(n_customers):
-        customer_id = f"CUST-{10000 + i}"
+        customer_id = f"CUST-{1000 + i}"
         
-        # Decide Churn Status (30% are Lost)
-        is_churned = np.random.choice([True, False], p=[0.3, 0.7])
+        # 1. Decide Churn Status
+        is_churned = np.random.choice([True, False], p=[0.2, 0.8])
         
-        # If churned, their "timeline" ends 150 to 700 days ago. 
-        # If active, their timeline goes up to today.
         if is_churned:
-            cutoff_days = np.random.randint(150, 700)
+            # Churned customers stopped buying 100-600 days ago
+            cutoff_days = np.random.randint(100, 600)
             customer_end_date = end_date - dt.timedelta(days=cutoff_days)
         else:
             customer_end_date = end_date
 
-        # Decide Loyalty (Frequency)
-        is_loyal = np.random.choice([True, False], p=[0.4, 0.6])
-        n_purchases = np.random.randint(3, 15) if is_loyal else 1
+        # 2. Decide Loyalty (Frequency)
+        # 50% chance of being a repeat buyer to ensure good data for Gamma-Gamma
+        is_loyal = np.random.choice([True, False], p=[0.5, 0.5])
+        n_purchases = np.random.randint(2, 20) if is_loyal else 1
         
-        # Determine First Purchase
-        # Must be before the customer_end_date
+        # 3. Determine Timeline
         days_window = (customer_end_date - start_date).days
-        if days_window <= 0: days_window = 1
+        if days_window <= 1: days_window = 10 # Safety buffer
         
-        first_purchase = start_date + dt.timedelta(days=np.random.randint(0, days_window))
+        # First purchase happens randomly in their active window
+        # We insure there's enough room for repeats if they are loyal
+        if is_loyal:
+             start_buffer = days_window // 2 # Force start earlier for loyalists
+             rand_start = np.random.randint(0, start_buffer)
+        else:
+             rand_start = np.random.randint(0, days_window)
+             
+        first_purchase = start_date + dt.timedelta(days=rand_start)
         
+        # Generate transactions
+        current_date = first_purchase
         for j in range(n_purchases):
-            # Calculate remaining time window for this specific customer
-            max_days = (customer_end_date - first_purchase).days
-            
-            if max_days > 0:
-                days_since_first = np.random.randint(0, max_days)
-                order_date = first_purchase + dt.timedelta(days=days_since_first)
-            else:
-                order_date = first_purchase
-            
             # Whales spend much more
             is_whale = np.random.choice([True, False], p=[0.05, 0.95])
-            amount = np.random.uniform(500, 2000) if is_whale else np.random.uniform(10, 200)
+            amount = np.random.uniform(500, 2000) if is_whale else np.random.uniform(20, 200)
             
             data.append({
-                'OrderID': f"ORD-{10000 + len(data)}",
+                'OrderID': f"ORD-{len(data)}",
                 'CustomerID': customer_id,
-                'OrderDate': order_date,
+                'OrderDate': current_date,
                 'TotalSum': round(amount, 2)
             })
             
+            # Move time forward for the next purchase (Sequential logic)
+            # This ensures Recency > 0 for repeaters
+            if j < n_purchases - 1:
+                remaining_days = (customer_end_date - current_date).days
+                if remaining_days > 1:
+                    # Random gap between 1 day and whatever time is left / remaining purchases
+                    avg_gap = max(1, remaining_days // (n_purchases - j))
+                    gap = np.random.randint(1, avg_gap + 10) 
+                    current_date += dt.timedelta(days=gap)
+                    
+                    # Hard stop if we go past end date
+                    if current_date > customer_end_date:
+                        break
+            
     return pd.DataFrame(data)
-
 def preprocess_data(df):
     errors = []
     
