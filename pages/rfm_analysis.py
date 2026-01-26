@@ -573,7 +573,8 @@ def run():
                 with col1:
                     st.markdown("#### Top 5 MVPs (Highest CLV)")
                     # Sort by CLV descending
-                    top_clv = final_report.sort_values('clv', ascending=False).head(5)
+                    top_clv = final_report.sort_values('clv', ascending=False).head(5).copy()
+                    top_clv['p_alive'] = top_clv['p_alive'] * 100 # convert to percentage
                     
                     # Create a clean display table
                     st.dataframe(
@@ -595,7 +596,7 @@ def run():
                             ),
                             "p_alive": st.column_config.NumberColumn(
                                 "Probability Alive", 
-                                format="%.1%%",
+                                format="%.1f%%",
                                 help="The probability that a customer remains active."
                             )
                         },
