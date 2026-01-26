@@ -308,7 +308,7 @@ def run():
     st.markdown("""
         This tool conducts **RFM (Recency, Frequency, Monetary)** analysis to segment your customers based on their historical purchase behavior. 
         
-        By combining classic segmentation with **probabilistic forecasting (BG/NBD & Gamma-Gamma models)**, it goes beyond "what happened" to predict "what’s next"—estimating the probability of customer churn and forecasting future **Lifetime Value (CLV)**. 
+        By combining classic segmentation with **probabilistic forecasting (BG/NBD & Gamma-Gamma models)**, it goes beyond "what happened" to predict "what’s next": estimating the probability of customer churn and forecasting future **Lifetime Value (CLV)**. 
         
         Upload your transaction data to identify your "Whales," save "At Risk" customers, and optimize your marketing ROI.
     """)
