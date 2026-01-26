@@ -397,7 +397,7 @@ def run():
 
         # --- ANALYSIS TRIGGER ---
         st.subheader("Execute Analysis")
-        analyze_btn = st.button("Run Full RFM & Predictive Analysis")
+        analyze_btn = st.button("Run Full RFM & Predictive Analysis", type='primary')
 
         # CALCULATION BLOCK
         if analyze_btn:
