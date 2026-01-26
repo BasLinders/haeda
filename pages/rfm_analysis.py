@@ -391,7 +391,7 @@ def run():
         # --- DATA PREVIEW ---
         st.header("Data Preview")
         st.write("Below is a sample of your cleaned data. Please verify the columns before analyzing.")
-        st.dataframe(clean_df.sample(min(len(clean_df), 5)), use_container_width=True)
+        st.dataframe(clean_df.sample(min(len(clean_df), 5)), width='stretch')
         
         st.divider()
 
@@ -465,7 +465,7 @@ def run():
                 """)
 
             st.subheader("Customer Insights Table")
-            st.dataframe(style_rfm_table(final_report), use_container_width=True)
+            st.dataframe(style_rfm_table(final_report), width='stretch')
                 
             # Download Button for the processed data
             csv = final_report.to_csv().encode('utf-8')
@@ -485,11 +485,11 @@ def run():
                 col1, col2 = st.columns([2, 1]) 
                 
                 with col1:
-                    st.plotly_chart(plotCustomers(final_report), use_container_width=True, key='customers_3d_tab')
+                    st.plotly_chart(plotCustomers(final_report),use_container_width=True, key='customers_3d_tab')
                     st.caption("Each dot is a customer. Clusters show how segments vary by Recency, Frequency, and Monetary value.")
                     
                 with col2:
-                    st.plotly_chart(plotSegmentDistribution(final_report), use_container_width=True, key='segment_tree_tab')
+                    st.plotly_chart(plotSegmentDistribution(final_report),use_container_width=True, key='segment_tree_tab')
                     st.caption("Proportion of your total customer base by segment.")
 
             with tab2:
@@ -497,7 +497,7 @@ def run():
                 
                 # Prepare Data for Visualization
                 # Group by Segment and calculate mean CLV and P(Alive)
-                segment_analysis = final_report.groupby('Segment').agg({
+                segment_analysis = final_report.reset_index().groupby('Segment').agg({
                     'clv': 'mean',
                     'p_alive': 'mean',
                     'predicted_purchases': 'mean',
