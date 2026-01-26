@@ -16,7 +16,7 @@ st.set_page_config(
 def generate_mock_data():
     """Generates synthetic transaction data for testing."""
     np.random.seed(42)
-    n_customers = 200
+    n_customers = 2000
     data = []
     
     # Create a date range for the last 2 years
