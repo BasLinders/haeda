@@ -11,7 +11,7 @@ logo_url = "https://cdn.homerun.co/49305/hh-woordmerk-rgb-blue-met-discriptor166
 st.image(logo_url, width=200)
 
 st.title("Advanced Exploratory Data Analysis")
-st.write("### <span style='color: orange;'>v0.0.1 (beta)</span>", unsafe_allow_html=True)
+st.write("### <span style='color: orange;'>v0.1-beta</span>", unsafe_allow_html=True)
 st.write("""
 This is the main page for the Advanced Exploratory Data Analysis Toolkit. You can navigate to individual apps using the sidebar.
 
@@ -20,7 +20,7 @@ This collection of tools makes it easy to analyze and visualize data from variou
 
 ### Features
 <span style='color:#009900; font-weight: 600; margin-right: 6px;'>&#10003;</span>**Market Basket analysis**: Find frequently bought combinations on product / category level<br>
-<span style='color:#009900; font-weight: 600; margin-right: 6px;'>&#10003;</span>**Process mining**: Reconstruct the customer journey (in development)<br>
+<span style='color:#009900; font-weight: 600; margin-right: 6px;'>&#10003;</span>**RFM Analysis with CLV predictions**: Segment customers and predict their lifetime value<br>
 
 ### How to Use
 - Select a page from the sidebar to view different tools.
