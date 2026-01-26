@@ -16,7 +16,7 @@ st.set_page_config(
 def generate_mock_data():
     """Generates synthetic transaction data with explicit churn patterns."""
     np.random.seed(42)
-    n_customers = 200
+    n_customers = 5000
     data = []
     
     end_date = dt.datetime.now()
@@ -76,64 +76,81 @@ def preprocess_data(df):
     # Normalize column names
     df.columns = df.columns.str.strip().str.lower()
     
-    # Define keywords
+    # Define keywords (Removed dangerous generic words like 'id', 'date', 'sum')
+    # Order matters: Put specific keywords FIRST.
     rename_map = {
-        'OrderID': ['transactie', 'transaction', 'order', 'bonid', 'transaction_id'],
-        'CustomerID': ['customer', 'klant', 'id', 'user_id', 'identifier'],
-        'OrderDate': ['date', 'datum', 'time', 'timestamp', 'dag'],
-        'TotalSum': ['sum', 'amount', 'bedrag', 'total', 'price', 'value', 'purchase_revenue', 'revenue']
+        'OrderID': ['transactie', 'transaction_id', 'order_id', 'bonid', 'order'],
+        'CustomerID': ['customer', 'klant', 'user_id', 'identifier', 'email', 'contact'],
+        'OrderDate': ['order_date', 'datum', 'timestamp', 'time', 'created_at'],
+        'TotalSum': ['total_amount', 'purchase_revenue', 'price', 'value', 'bedrag', 'amount', 'total']
     }
 
-    # Find and rename columns
     found_columns = {}
+    used_columns = set() # Track which columns we have already claimed
+
     for standard_name, keywords in rename_map.items():
+        match_found = False
+        
+        # Priority 1: Exact Match (e.g., "date" == "date")
+        for col in df.columns:
+            if col == standard_name.lower() and col not in used_columns:
+                found_columns[standard_name] = col
+                used_columns.add(col)
+                match_found = True
+                break
+        
+        if match_found: continue
+
+        # Priority 2: Keyword Match
         for keyword in keywords:
             for col in df.columns:
-                if keyword in col:
+                # Check if keyword is in column AND column isn't already used
+                if keyword in col and col not in used_columns:
                     found_columns[standard_name] = col
+                    used_columns.add(col)
+                    match_found = True
                     break
-            if standard_name in found_columns:
-                break
-    
+            if match_found: break
+
+    # Rename mapped columns
     df.rename(columns={v: k for k, v in found_columns.items()}, inplace=True)
 
     # Validate required columns
     required_cols = ['OrderID', 'CustomerID', 'OrderDate', 'TotalSum']
-    for col in required_cols:
-        if col not in df.columns:
-            errors.append(f"Column '{col}' is required but not found.")
+    missing = [col for col in required_cols if col not in df.columns]
     
-    if errors:
+    if missing:
+        # Return specific error to help user debug
+        errors.append(f"Missing required columns: {', '.join(missing)}")
         return df, errors, False
 
-    # --- CLEANING & STRIPPING ---
-
-    # Clean customer ID column
-    df['CustomerID'] = df['CustomerID'].astype(str) # explicitly set as string
-    df['CustomerID'] = df['CustomerID'].str.strip().str.lower() # strip whitespaces and convert to lower string
+    # --- CLEANING ---
     
-    # Keep columns needed for RFM analysis
+    # Keep only what we need
     df = df[required_cols].copy()
     
-    # Drop rows with missing values in these specific columns
-    df.dropna(inplace=True)
+    # Clean ID
+    df['CustomerID'] = df['CustomerID'].astype(str).str.strip().str.lower()
+    
+    # Clean Date
+    df['OrderDate'] = pd.to_datetime(df['OrderDate'], errors='coerce')
+    if df['OrderDate'].isna().all():
+         errors.append("Could not parse any valid dates from 'OrderDate' column.")
+         return df, errors, False
+    df.dropna(subset=['OrderDate'], inplace=True)
 
-    # Convert types
-    try:
-        df['OrderDate'] = pd.to_datetime(df['OrderDate'])
-    except:
-        errors.append("Invalid date format detected.")
-        return df, errors, False
-
+    # Clean TotalSum (Handle '1.000,00' vs '1,000.00')
     df['TotalSum'] = df['TotalSum'].astype(str)
-    df['TotalSum'] = df['TotalSum'].str.replace(',', '.', regex=False).str.replace(r'[^\d.-]', '', regex=True) 
+    # If commas are used as decimals (European), replace them. 
+    # Heuristic: If there is a comma but no dot, it's likely a decimal comma.
+    # Simple standardized approach: remove all non-digits and non-separators
+    df['TotalSum'] = df['TotalSum'].str.replace(r'[^\d,.-]', '', regex=True)
+    # Replace comma with dot ONLY if it looks like a decimal separator
+    df['TotalSum'] = df['TotalSum'].str.replace(',', '.', regex=False)
+    
     df['TotalSum'] = pd.to_numeric(df['TotalSum'], errors='coerce')
     df.dropna(subset=['TotalSum'], inplace=True)
-    
-    # Filter for positive transactions only
     df = df[df['TotalSum'] > 0]
-
-    df['OrderID'] = df['OrderID'].astype(str)
 
     return df, errors
 
@@ -516,6 +533,19 @@ def run():
                     st.caption("Proportion of your total customer base by segment.")
 
             with tab2:
+                if 'clv' not in final_report.columns:
+                    st.warning("Predictive Analytics could not be generated.")
+                    st.info("""
+                        **Why?** The statistical models (BG/NBD & Gamma-Gamma) failed to converge. 
+                        This usually happens when:
+                        1. The dataset is too small (< 100 customers).
+                        2. There are very few repeat purchases (everyone is a one-time buyer).
+                        3. The data does not span a long enough time period.
+                        
+                        **Solution:** Try loading a larger dataset or one with more repeat transaction history.
+                    """)
+                    st.stop()
+                    
                 st.subheader("Predictive Value by Segment")
                 
                 # Prepare Data for Visualization
