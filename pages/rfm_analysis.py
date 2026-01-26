@@ -419,7 +419,7 @@ def run():
                     
                     # Merge
                     final_report = rfm_df.join(final_predictive[['predicted_purchases', 'p_alive', 'clv']])
-                    st.success("Analysis complete including Predictive Models")
+                    st.success("Analysis complete, including Predictive Models.")
                 except Exception as e:
                     st.warning(f"Could not run predictions (possibly not enough repeat data): {e}. Showing Classic RFM only.")
                     final_report = rfm_df.copy()
