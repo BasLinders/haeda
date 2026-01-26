@@ -589,10 +589,14 @@ def run():
                                 help="Expected number of transactions in the next 30 days.",
                                 format="%.2f"
                             ),
-                            # FIXED: Moved inside the dictionary, capitalized 'TextColumn', and capitalized the key 'Segment'
                             "Segment": st.column_config.TextColumn(
                                 "Customer Segment",
                                 help="The segment in which the RFM analysis clustered the customer."
+                            ),
+                            "p_alive": st.column_config.NumberColumn(
+                                "Probability Alive", 
+                                format="%.1%",
+                                help="The probability that a customer remains active."
                             )
                         },
                         width="stretch"
