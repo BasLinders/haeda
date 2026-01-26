@@ -319,7 +319,7 @@ def run():
             ### 1. The BG/NBD "Heartbeat" Model (Beta Geometric/Negative Binomial Distribution)
             Think of every customer as having a "heartbeat" (their purchase frequency). 
             * **The Logic:** If a customer usually buys every 30 days but hasn't bought in 90, the model senses their "heartbeat" is fading. 
-            * **The Output:** This gives us the **P(Alive)** metric—the probability that the customer is still a "living" part of your business versus someone who has churned (left permanently).
+            * **The Output:** This gives us the **P(Alive)** metric: the probability that the customer is still a "living" part of your business versus someone who has churned (left permanently).
             
             ### 2. The "Spending Habit" Model (Gamma-Gamma)
             This model looks at **how much** a customer spends when they do decide to buy.
@@ -457,7 +457,7 @@ def run():
                 Unlike classic RFM which looks backward, these metrics forecast future behavior:
                 
                 * **Frequency ($x$)**: The count of **repeat** transactions. We ignore the first purchase to establish a baseline of "loyalty."
-                * **Recency ($t_x$)**: The "active lifespan"—the time between their very first and very last purchase.
+                * **Recency ($t_x$)**: The "active lifespan": the time between their very first and very last purchase.
                 * **Age ($T$)**: How long it has been since we first saw this customer. 
                 * **P(Alive)**: The probability (0.0 to 1.0) that a customer is still "active." If this drops, the customer is likely churning.
                 * **Expected Purchases**: How many orders this specific person is statistically likely to place in the next 30 days.
