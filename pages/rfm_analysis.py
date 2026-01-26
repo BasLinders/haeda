@@ -595,7 +595,7 @@ def run():
                             ),
                             "p_alive": st.column_config.NumberColumn(
                                 "Probability Alive", 
-                                format="%.1%",
+                                format="%.1%%",
                                 help="The probability that a customer remains active."
                             )
                         },
@@ -619,7 +619,7 @@ def run():
                         st.dataframe(
                             risky_vips[['p_alive', 'Monetary', 'Segment']]
                             .style.format({'p_alive': '{:.1%}', 'Monetary': '€{:.2f}'}),
-                            use_container_width=True
+                            width='stretch'
                         )
                         st.caption("These are high-spenders showing signs of churn. **Contact them immediately.**")
                     else:
