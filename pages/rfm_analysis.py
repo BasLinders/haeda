@@ -108,9 +108,13 @@ def preprocess_data(df):
 
     # --- CLEANING & STRIPPING ---
 
+    # Clean customer ID column
+    df['CustomerID'] = df['CustomerID'].astype(str) # explicitly set as string
+    df['CustomerID'] = df['CustomerID'].str.strip().str.lower() # strip whitespaces and convert to lower string
+    
     # Keep columns needed for RFM analysis
     df = df[required_cols].copy()
-
+    
     # Drop rows with missing values in these specific columns
     df.dropna(inplace=True)
 
@@ -130,7 +134,6 @@ def preprocess_data(df):
     df = df[df['TotalSum'] > 0]
 
     df['OrderID'] = df['OrderID'].astype(str)
-    df['CustomerID'] = df['CustomerID'].astype(str)
 
     return df, errors
 
@@ -362,7 +365,7 @@ def run():
             "Requirement": ["Order ID", "Customer ID", "Order Date", "Total Amount"],
             "Accepted Keywords": [
                 "transactie, transaction, order, bonid, transaction_id",
-                "customer, klant, id, user_id, identifier",
+                "customer, klant, id, user_id, identifier, e-mail address",
                 "date, datum, time, timestamp, dag",
                 "sum, amount, bedrag, total, price, value, purchase_revenue, revenue"
             ],
