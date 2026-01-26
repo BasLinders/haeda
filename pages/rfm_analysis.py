@@ -330,7 +330,7 @@ def run():
             We combine the two models above to answer the ultimate business question: 
             > *"Based on their heartbeat and their spending habits, how much is this person worth to us over the next 12 months?"*
             
-            **Why should I trust this?** These models are the industry standard for "Non-Contractual" businesses (like e-commerce or retail), where customers are free to come and go without canceling a subscription.
+            **Why should I trust this?** These models are the industry standard for "Non-Contractual" businesses (like e-commerce or retail), where customers are free to come and go without canceling a subscription or order.
             """)
     with st.expander("CSV Data Requirements & Formatting", expanded=False):
         st.markdown("""
@@ -368,7 +368,7 @@ def run():
     # --- DATA LOADING LOGIC ---
     if use_mock:
         st.session_state['df_raw'] = generate_mock_data()
-        st.sidebar.success("Mock data loaded!")
+        st.sidebar.success("Mock data loaded")
         
     elif uploaded_file is not None:
         st.session_state['df_raw'] = pd.read_csv(uploaded_file)
@@ -386,7 +386,7 @@ def run():
             if any("required but not found" in e for e in errors):
                 return # Stop if critical columns are missing
         
-        st.sidebar.success("Data cleaned and mapped!")
+        st.sidebar.success("Data cleaned and mapped.")
 
         # --- DATA PREVIEW ---
         st.header("Data Preview")
@@ -419,7 +419,7 @@ def run():
                     
                     # Merge
                     final_report = rfm_df.join(final_predictive[['predicted_purchases', 'p_alive', 'clv']])
-                    st.success("Analysis complete including Predictive Models!")
+                    st.success("Analysis complete including Predictive Models")
                 except Exception as e:
                     st.warning(f"Could not run predictions (possibly not enough repeat data): {e}. Showing Classic RFM only.")
                     final_report = rfm_df.copy()
@@ -493,16 +493,91 @@ def run():
                     st.caption("Proportion of your total customer base by segment.")
 
             with tab2:
-                st.subheader("Future Value Forecast")
+                st.subheader("Predictive Value by Segment")
                 
-                # Calculate global metrics for a quick "Health Check"
-                avg_p_alive = final_report['p_alive'].mean()
-                total_clv = final_report['clv'].sum()
+                # Prepare Data for Visualization
+                # Group by Segment and calculate mean CLV and P(Alive)
+                segment_analysis = final_report.groupby('Segment').agg({
+                    'clv': 'mean',
+                    'p_alive': 'mean',
+                    'predicted_purchases': 'mean',
+                    'CustomerID': 'count'
+                }).reset_index()
                 
-                m1, m2, m3 = st.columns(3)
-                m1.metric("Avg. Probability of Being Alive", f"{avg_p_alive:.1%}")
-                m2.metric("Total Forecasted Revenue (12m)", f"€{total_clv:,.0f}")
-                m3.metric("Highest Predicted CLV", f"€{final_report['clv'].max():,.2f}")
+                # Sort by CLV so the chart is ordered meaningfully
+                segment_analysis = segment_analysis.sort_values('clv', ascending=False)
+                
+                # Key Metrics Row
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Highest Avg CLV Segment", 
+                          f"{segment_analysis.iloc[0]['Segment']}",
+                          f"€{segment_analysis.iloc[0]['clv']:,.0f}")
+                
+                # Find the segment with the highest churn risk (lowest p_alive)
+                highest_risk = segment_analysis.sort_values('p_alive').iloc[0]
+                col2.metric("Highest Churn Risk", 
+                          f"{highest_risk['Segment']}",
+                          f"{(1 - highest_risk['p_alive']):.1%} Churn Prob")
+                
+                col3.metric("Total Forecasted Revenue", 
+                          f"€{final_report['clv'].sum():,.0f}")
+
+                st.divider()
+
+                # Visualization: CLV vs Churn Risk
+                c1, c2 = st.columns(2)
+                
+                with c1:
+                    st.markdown("##### Average Lifetime Value (12 months) by Segment")
+                    fig_clv = px.bar(
+                        segment_analysis, 
+                        x='Segment', 
+                        y='clv', 
+                        color='Segment',
+                        text_auto='.0f',
+                        title="Which segment drives future value?"
+                    )
+                    fig_clv.update_layout(showlegend=False, xaxis_title=None, yaxis_title="Avg CLV (€)")
+                    st.plotly_chart(fig_clv, use_container_width=True)
+                    st.caption("Note: If 'Whales' have lower CLV than 'Champions', they may be 'one-hit wonders' who spent a lot once but aren't likely to return.")
+
+                with c2:
+                    st.markdown("##### Customer Health (Probability Alive)")
+                    # Interpret p_alive as "Health". 1.0 = Healthy, 0.0 = Churned.
+                    fig_alive = px.scatter(
+                        segment_analysis,
+                        x='p_alive',
+                        y='Segment',
+                        size='CustomerID', # Bubble size = number of customers
+                        color='Segment',
+                        title="Segment Health vs. Size"
+                    )
+                    fig_alive.update_layout(
+                        showlegend=False, 
+                        xaxis_title="Probability of Being Alive (0=Lost, 1=Active)", 
+                        xaxis_range=[0, 1.1]
+                    )
+                    # Add a vertical line at 0.5 to show the "danger zone"
+                    fig_alive.add_vline(x=0.5, line_dash="dash", line_color="red", annotation_text="Churn Threshold")
+                    st.plotly_chart(fig_alive, use_container_width=True)
+                    st.caption("Bubbles to the **left** are effectively lost. Bubbles to the **right** are active. Size represents the number of customers.")
+
+                # 4. Drills Down: Actionable Lists
+                st.divider()
+                st.subheader("Actionable Intelligence")
+                
+                # Find "Champions" who are actually at risk (High RFM score, but low p_alive)
+                risky_champions = final_report[
+                    (final_report['Segment'] == 'Champions') & 
+                    (final_report['p_alive'] < 0.5)
+                ].sort_values('clv', ascending=False).head(10)
+                
+                if not risky_champions.empty:
+                    st.warning(f"**Urgent Attention:** Found {len(risky_champions)} 'Champions' with high churn risk.")
+                    st.write("These customers spent heavily in the past but the model predicts they have stopped engaging. **Contact them immediately.**")
+                    st.dataframe(risky_champions[['p_alive', 'clv', 'Recency', 'Frequency', 'Monetary']].style.format({'p_alive': '{:.2%}', 'clv': '€{:.2f}'}))
+                else:
+                    st.success("Your Champions are healthy! No immediate churn risk detected in the top tier.")
     else:
         # State when no file is uploaded
         st.info("Please upload a CSV file in the sidebar to get started.")
