@@ -14,30 +14,50 @@ st.set_page_config(
 # --- DATA INGESTION ---
 
 def generate_mock_data():
-    """Generates synthetic transaction data for testing."""
+    """Generates synthetic transaction data with explicit churn patterns."""
     np.random.seed(42)
-    n_customers = 2000
+    n_customers = 200
     data = []
     
-    # Create a date range for the last 2 years
     end_date = dt.datetime.now()
     start_date = end_date - dt.timedelta(days=730)
     
     for i in range(n_customers):
         customer_id = f"CUST-{1000 + i}"
-        # Randomly decide if they are a loyal or one-time customer
+        
+        # Decide Churn Status (30% are Lost)
+        is_churned = np.random.choice([True, False], p=[0.3, 0.7])
+        
+        # If churned, their "timeline" ends 150 to 700 days ago. 
+        # If active, their timeline goes up to today.
+        if is_churned:
+            cutoff_days = np.random.randint(150, 700)
+            customer_end_date = end_date - dt.timedelta(days=cutoff_days)
+        else:
+            customer_end_date = end_date
+
+        # Decide Loyalty (Frequency)
         is_loyal = np.random.choice([True, False], p=[0.4, 0.6])
         n_purchases = np.random.randint(3, 15) if is_loyal else 1
         
-        # Spread purchases between their "birth" and now
-        first_purchase = start_date + dt.timedelta(days=np.random.randint(0, 400))
+        # Determine First Purchase
+        # Must be before the customer_end_date
+        days_window = (customer_end_date - start_date).days
+        if days_window <= 0: days_window = 1
+        
+        first_purchase = start_date + dt.timedelta(days=np.random.randint(0, days_window))
         
         for j in range(n_purchases):
-            # Orders happen randomly after the first purchase
-            days_since_first = np.random.randint(0, (end_date - first_purchase).days)
-            order_date = first_purchase + dt.timedelta(days=days_since_first)
+            # Calculate remaining time window for this specific customer
+            max_days = (customer_end_date - first_purchase).days
             
-            # Whales spend much more. We need whales.
+            if max_days > 0:
+                days_since_first = np.random.randint(0, max_days)
+                order_date = first_purchase + dt.timedelta(days=days_since_first)
+            else:
+                order_date = first_purchase
+            
+            # Whales spend much more
             is_whale = np.random.choice([True, False], p=[0.05, 0.95])
             amount = np.random.uniform(500, 2000) if is_whale else np.random.uniform(10, 200)
             
