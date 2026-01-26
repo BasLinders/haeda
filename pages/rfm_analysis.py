@@ -519,9 +519,25 @@ def run():
                     
                     # Create a clean display table
                     st.dataframe(
-                        top_clv[['clv', 'predicted_purchases', 'Segment']]
-                        .style.format({'clv': '€{:.2f}', 'predicted_purchases': '{:.2f}'}),
-                        use_container_width=True
+                        top_clv,
+                        column_config={
+                            "clv": st.column_config.NumberColumn(
+                                "Customer Lifetime Value",
+                                help="Predicted total revenue from this customer over the next 12 months.",
+                                format="€%.2f"
+                            ),
+                            "predicted_purchases": st.column_config.NumberColumn(
+                                "Exp. Purchases (30d)",
+                                help="Expected number of transactions in the next 30 days.",
+                                format="%.2f"
+                            ),
+                            # FIXED: Moved inside the dictionary, capitalized 'TextColumn', and capitalized the key 'Segment'
+                            "Segment": st.column_config.TextColumn(
+                                "Customer Segment",
+                                help="The segment in which the RFM analysis clustered the customer."
+                            )
+                        },
+                        width="stretch"
                     )
                     st.caption("These 5 customers are predicted to generate the most revenue in the next 12 months.")
 
