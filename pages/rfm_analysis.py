@@ -471,9 +471,9 @@ def run():
             st.subheader("Visual Analytics")
             c1, c2 = st.columns(2)
             with c1:
-                st.plotly_chart(plotCustomers(final_report), use_container_width=True)
+                st.plotly_chart(plotCustomers(final_report), use_container_width=True, key='customers_3d_top')
             with c2:
-                st.plotly_chart(plotSegmentDistribution(final_report), use_container_width=True)
+                st.plotly_chart(plotSegmentDistribution(final_report), use_container_width=True, key='segment_tree_top')
                 
             # Download Button for the processed data
             csv = final_report.to_csv().encode('utf-8')
@@ -493,11 +493,11 @@ def run():
                 col1, col2 = st.columns([2, 1]) 
                 
                 with col1:
-                    st.plotly_chart(plotCustomers(final_report), use_container_width=True)
+                    st.plotly_chart(plotCustomers(final_report), use_container_width=True, key='customers_3d_tab')
                     st.caption("Each dot is a customer. Clusters show how segments vary by Recency, Frequency, and Monetary value.")
                     
                 with col2:
-                    st.plotly_chart(plotSegmentDistribution(final_report), use_container_width=True)
+                    st.plotly_chart(plotSegmentDistribution(final_report), use_container_width=True, key='segment_tree_tab')
                     st.caption("Proportion of your total customer base by segment.")
 
             with tab2:
