@@ -12,51 +12,56 @@ st.set_page_config(
 )
 
 # --- DATA INGESTION ---
-
+@st.cache_data
 def generate_mock_data():
-    """Generates synthetic transaction data with explicit churn patterns."""
+    """Generates robust synthetic transaction data for RFM testing."""
     np.random.seed(42)
     n_customers = 2000 
     data = []
     
     end_date = dt.datetime.now()
+    # 2 years of history
     start_date = end_date - dt.timedelta(days=730)
     
     for i in range(n_customers):
         customer_id = f"CUST-{1000 + i}"
         
-        # 1. Decide Churn Status
+        # Decide Churn Status (20% Churned)
         is_churned = np.random.choice([True, False], p=[0.2, 0.8])
         
+        # Define the "Active Window" for this customer
+        # If churned, their window ends 100-600 days ago.
+        # If active, their window goes up to today.
         if is_churned:
-            # Churned customers stopped buying 100-600 days ago
-            cutoff_days = np.random.randint(100, 600)
-            customer_end_date = end_date - dt.timedelta(days=cutoff_days)
+            churn_gap = np.random.randint(100, 600)
+            customer_end_date = end_date - dt.timedelta(days=churn_gap)
         else:
             customer_end_date = end_date
 
-        # 2. Decide Loyalty (Frequency)
-        # 50% chance of being a repeat buyer to ensure good data for Gamma-Gamma
-        is_loyal = np.random.choice([True, False], p=[0.5, 0.5])
-        n_purchases = np.random.randint(2, 20) if is_loyal else 1
+        # Calculate total days in their specific timeline
+        timeline_days = (customer_end_date - start_date).days
+        if timeline_days < 10: timeline_days = 10 # Safety buffer
+
+        # Decide Loyalty (Frequency)
+        # 40% are repeat buyers (Loyal)
+        is_loyal = np.random.choice([True, False], p=[0.4, 0.6])
         
-        # 3. Determine Timeline
-        days_window = (customer_end_date - start_date).days
-        if days_window <= 1: days_window = 10 # Safety buffer
-        
-        # First purchase happens randomly in their active window
-        # We insure there's enough room for repeats if they are loyal
         if is_loyal:
-             start_buffer = days_window // 2 # Force start earlier for loyalists
-             rand_start = np.random.randint(0, start_buffer)
+            n_purchases = np.random.randint(2, 12)
         else:
-             rand_start = np.random.randint(0, days_window)
-             
-        first_purchase = start_date + dt.timedelta(days=rand_start)
+            n_purchases = 1
+
+        # Generate Dates
+        # We pick N unique days from their available timeline.
+        # replace=False ensures no same-day duplicates (which mess up Frequency counts)
+        if n_purchases > timeline_days: n_purchases = timeline_days
         
-        # Generate transactions
-        current_date = first_purchase
-        for j in range(n_purchases):
+        days_from_start = np.random.choice(range(timeline_days), n_purchases, replace=False)
+        days_from_start.sort() # Important: Transaction history must be chronological
+        
+        for day_offset in days_from_start:
+            order_date = start_date + dt.timedelta(days=int(day_offset))
+            
             # Whales spend much more
             is_whale = np.random.choice([True, False], p=[0.05, 0.95])
             amount = np.random.uniform(500, 2000) if is_whale else np.random.uniform(20, 200)
@@ -64,25 +69,12 @@ def generate_mock_data():
             data.append({
                 'OrderID': f"ORD-{len(data)}",
                 'CustomerID': customer_id,
-                'OrderDate': current_date,
+                'OrderDate': order_date,
                 'TotalSum': round(amount, 2)
             })
             
-            # Move time forward for the next purchase (Sequential logic)
-            # This ensures Recency > 0 for repeaters
-            if j < n_purchases - 1:
-                remaining_days = (customer_end_date - current_date).days
-                if remaining_days > 1:
-                    # Random gap between 1 day and whatever time is left / remaining purchases
-                    avg_gap = max(1, remaining_days // (n_purchases - j))
-                    gap = np.random.randint(1, avg_gap + 10) 
-                    current_date += dt.timedelta(days=gap)
-                    
-                    # Hard stop if we go past end date
-                    if current_date > customer_end_date:
-                        break
-            
     return pd.DataFrame(data)
+    
 def preprocess_data(df):
     errors = []
     
@@ -241,7 +233,7 @@ def calculate_predictive_rfm(df):
     return predictive_rfm[['x', 't_x', 'T', 'm']]
 
 def predictions(predictive_rfm):
-    bgf = BetaGeoFitter(penalizer_coef=0.0)
+    bgf = BetaGeoFitter(penalizer_coef=0.01)
     bgf.fit(predictive_rfm['x'], predictive_rfm['t_x'], predictive_rfm['T'])
 
     # Predict purchases for the next 30 days
@@ -266,7 +258,7 @@ def calculate_clv(predictive_rfm, bgf, months=12):
         st.warning(f"Warning: High correlation ({corr:.2f}) between Frequency and Monetary value detected. CLV estimates may be unstable.")
 
     # Fit the Gamma-Gamma Model
-    ggf = GammaGammaFitter(penalizer_coef=0.0)
+    ggf = GammaGammaFitter(penalizer_coef=0.01)
     ggf.fit(returning_customers['x'], returning_customers['m'])
     
     # Predict the average transaction value
