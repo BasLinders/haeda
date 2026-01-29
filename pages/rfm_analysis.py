@@ -144,16 +144,30 @@ def preprocess_data(df):
          return df, errors, False
     df.dropna(subset=['OrderDate'], inplace=True)
 
-    # Clean TotalSum (Handle '1.000,00' vs '1,000.00')
-    df['TotalSum'] = df['TotalSum'].astype(str)
-    # If commas are used as decimals (European), replace them. 
-    # Heuristic: If there is a comma but no dot, it's likely a decimal comma.
-    # Simple standardized approach: remove all non-digits and non-separators
-    df['TotalSum'] = df['TotalSum'].str.replace(r'[^\d,.-]', '', regex=True)
-    # Replace comma with dot ONLY if it looks like a decimal separator
-    df['TotalSum'] = df['TotalSum'].str.replace(',', '.', regex=False)
+    # Clean TotalSum
+    df['TotalSum'] = df['TotalSum'].astype(str).str.replace(r'[^\d,.-]', '', regex=True)
     
+    # Get the last non-numeric character for each row (the separator)
+    last_separators = df['TotalSum'].str.replace(r'\d', '', regex=True).str[-1]
+    
+    comma_count = last_separators[last_separators == ','].count() # Probably European notation
+    dot_count = last_separators[last_separators == '.'].count() # Probably American notation
+
+    # Apply Logic based on the "Winner"
+    if comma_count > dot_count:
+        # EUROPEAN LOGIC DETECTED (Majority use comma as decimal)
+        # Remove thousands separator (.) then swap decimal (,) to (.)
+        df['TotalSum'] = df['TotalSum'].str.replace('.', '', regex=False)
+        df['TotalSum'] = df['TotalSum'].str.replace(',', '.', regex=False)
+    else:
+        # AMERICAN LOGIC DETECTED (Majority use dot as decimal)
+        # Remove thousands separator (,) -> Python handles the dot natively
+        df['TotalSum'] = df['TotalSum'].str.replace(',', '', regex=False)
+
+    # Final Convert
     df['TotalSum'] = pd.to_numeric(df['TotalSum'], errors='coerce')
+    
+    # Drop failures
     df.dropna(subset=['TotalSum'], inplace=True)
     df = df[df['TotalSum'] > 0]
 
