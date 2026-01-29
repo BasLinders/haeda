@@ -439,6 +439,32 @@ def run():
         # --- PREPROCESS ---
         clean_df, errors = preprocess_data(df)
         
+        # --- DEBUG: CHECK TOTALSUM CONVERSION ---
+        with st.expander("Debug: Check Number Conversion"):
+            st.write("This shows the raw text from your CSV vs. the number Python understood.")
+            
+            # 1. Get raw values from the uploaded file (before cleaning)
+            # We need to read the file again briefly just to see the raw text
+            uploaded_file.seek(0)
+            df_raw_debug = pd.read_csv(uploaded_file)
+            
+            # Find the TotalSum column (using the same mapping logic)
+            raw_col_name = None
+            possible_names = ['total_amount', 'purchase_revenue', 'price', 'value', 'bedrag', 'amount', 'total']
+            for col in df_raw_debug.columns:
+                if any(x in col.lower() for x in possible_names):
+                    raw_col_name = col
+                    break
+            
+            if raw_col_name:
+                debug_comparison = pd.DataFrame({
+                    'Raw Text (CSV)': df_raw_debug[raw_col_name].head(10).astype(str),
+                    'Converted Number': clean_df['TotalSum'].head(10)
+                })
+                st.table(debug_comparison)
+            else:
+                st.warning("Could not automatically find the original TotalSum column for debugging.")
+        
         if errors:
             for error in errors:
                 st.sidebar.error(error)
