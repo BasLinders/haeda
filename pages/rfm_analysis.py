@@ -138,7 +138,7 @@ def preprocess_data(df):
     df['CustomerID'] = df['CustomerID'].astype(str).str.strip().str.lower()
     
     # Clean Date
-    df['OrderDate'] = pd.to_datetime(df['OrderDate'], errors='coerce')
+    df['OrderDate'] = pd.to_datetime(df['OrderDate'], dayfirst=True, errors='coerce')
     if df['OrderDate'].isna().all():
          errors.append("Could not parse any valid dates from 'OrderDate' column.")
          return df, errors, False
@@ -536,7 +536,7 @@ def run():
 
             sort_col = 'clv' if 'clv' in final_report.columns else 'Monetary'
             preview_df = final_report.sort_values(sort_col, ascending=False).head(1000)
-            st.dataframe(style_rfm_table(final_report), width='stretch')
+            st.dataframe(style_rfm_table(preview_df), width='stretch')
                 
             # Download Button for the processed data
             csv = final_report.to_csv().encode('utf-8')
