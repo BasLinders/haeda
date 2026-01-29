@@ -84,10 +84,10 @@ def preprocess_data(df):
     # Define keywords (Removed dangerous generic words like 'id', 'date', 'sum')
     # Order matters: Put specific keywords FIRST.
     rename_map = {
-        'OrderID': ['transactie', 'transaction_id', 'order_id', 'bonid', 'order'],
-        'CustomerID': ['customer', 'klant', 'user_id', 'identifier', 'email', 'contact'],
-        'OrderDate': ['order_date', 'datum', 'timestamp', 'time', 'created_at'],
-        'TotalSum': ['total_amount', 'purchase_revenue', 'price', 'value', 'bedrag', 'amount', 'total']
+        'OrderID': ['transactie', 'transaction_id', 'order_id', 'bonid', 'order', 'Order ID'],
+        'CustomerID': ['customer', 'klant', 'user_id', 'identifier', 'email', 'contact', 'Customer ID'],
+        'OrderDate': ['order_date', 'datum', 'timestamp', 'time', 'created_at', 'Order Date'],
+        'TotalSum': ['total_amount', 'purchase_revenue', 'price', 'value', 'bedrag', 'amount', 'total', 'Total Amount']
     }
 
     found_columns = {}
