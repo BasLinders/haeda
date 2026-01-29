@@ -621,7 +621,9 @@ def run():
                 
                 # Prepare Data for Visualization
                 # Group by Segment and calculate mean CLV and P(Alive)
-                segment_analysis = final_report.reset_index().groupby('Segment').agg({
+                
+                repeat_customers = final_report[final_report['Frequency'] > 1]
+                segment_analysis = repeat_customers.reset_index().groupby('Segment').agg({
                     'clv': 'mean',
                     'p_alive': 'mean',
                     'predicted_purchases': 'mean',
