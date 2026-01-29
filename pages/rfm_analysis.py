@@ -438,6 +438,32 @@ def run():
     if df is not None:
         # --- PREPROCESS ---
         clean_df, errors = preprocess_data(df)
+
+        st.subheader("Timeframe Settings")
+        
+        # 1. Show the user the detected range
+        min_date = clean_df['OrderDate'].min()
+        max_date = clean_df['OrderDate'].max()
+        st.info(f"Detected Data Range: **{min_date.date()}** to **{max_date.date()}**")
+        
+        # 2. Add an interactive slider to trim the data
+        # Default: Start from 3 years ago, End at "Today"
+        default_start = max(min_date, max_date - dt.timedelta(days=365*3))
+        
+        date_range = st.slider(
+            "Select Analysis Period",
+            min_value=min_date.date(),
+            max_value=max_date.date(),
+            value=(default_start.date(), max_date.date())
+        )
+        
+        # 3. Filter the dataframe based on slider selection
+        mask = (clean_df['OrderDate'].dt.date >= date_range[0]) & \
+               (clean_df['OrderDate'].dt.date <= date_range[1])
+        clean_df = clean_df[mask]
+        
+        st.write(f"Analyzing **{len(clean_df)}** transactions within this period.")
+        st.divider()
         
         if errors:
             for error in errors:
