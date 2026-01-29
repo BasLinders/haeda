@@ -446,9 +446,17 @@ def run():
 
         # CALCULATION BLOCK
         if analyze_btn:
-            with st.spinner("Calculating segments and forecasting future value..."):
-                # Classic RFM
+            progress_bar = st.progress(0, text="Initializing analysis...")
+            
+            # Initialize final_report to None to ensure scope safety
+            final_report = None 
+            
+            try:
+                # --- Classic RFM ---
+                progress_bar.progress(10, text="Calculating historical RFM metrics...")
                 rfm_df = calculate_rfm(clean_df)
+
+                progress_bar.progress(30, text="Identifying Whales and Champions...")
                 whale_threshold = rfm_df['Monetary'].quantile(0.95)
                 rfm_df['Segment'] = rfm_df.apply(
                     get_segment_name, 
@@ -456,20 +464,34 @@ def run():
                     whale_threshold=whale_threshold
                 )
 
-                # Predictive Analysis
-                try:
-                    predictive_df = calculate_predictive_rfm(clean_df)
-                    predictive_df, bgf_model = predictions(predictive_df) 
-                    final_predictive = calculate_clv(predictive_df, bgf_model)
-                    
-                    # Merge
-                    final_report = rfm_df.join(final_predictive[['predicted_purchases', 'p_alive', 'clv']])
-                    st.success("Analysis complete, including Predictive Models.")
-                except Exception as e:
-                    st.warning(f"Could not run predictions (possibly not enough repeat data): {e}. Showing Classic RFM only.")
-                    final_report = rfm_df.copy()
+                # --- Predictive Models ---
+                progress_bar.progress(50, text="Preparing data for statistical models...")
+                predictive_df = calculate_predictive_rfm(clean_df)
 
-                # Save result to session state
+                progress_bar.progress(70, text="Fitting BG/NBD model (Predicting Churn Risk)...")
+                predictive_df, bgf_model = predictions(predictive_df)
+
+                progress_bar.progress(90, text="Fitting Gamma-Gamma model (Forecasting CLV)...")
+                final_predictive = calculate_clv(predictive_df, bgf_model)
+                
+                # Merge
+                final_report = rfm_df.join(final_predictive[['predicted_purchases', 'p_alive', 'clv']])
+                
+                progress_bar.progress(100, text="Analysis Complete!")
+                st.success("Analysis complete, including Predictive Models.")
+                
+            except Exception as e:
+                progress_bar.empty()
+                st.warning(f"Could not run predictions: {e}. Showing Classic RFM only.")
+                
+                # Fallback: Use the basic RFM dataframe if predictions fail
+                if 'rfm_df' in locals():
+                    final_report = rfm_df.copy()
+                else:
+                    st.error("Critical error in RFM calculation.")
+                    st.stop()
+
+            if final_report is not None:
                 st.session_state['results'] = final_report
 
         # VISUALIZATION BLOCK
@@ -510,6 +532,10 @@ def run():
                 """)
 
             st.subheader("Customer Insights Table")
+            st.caption("*Displaying top 1,000 customers sorted by Monetary value. Download the CSV for the full list.*")
+
+            sort_col = 'clv' if 'clv' in final_report.columns else 'Monetary'
+            preview_df = final_report.sort_values(sort_col, ascending=False).head(1000)
             st.dataframe(style_rfm_table(final_report), width='stretch')
                 
             # Download Button for the processed data
