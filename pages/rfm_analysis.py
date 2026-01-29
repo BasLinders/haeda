@@ -736,7 +736,7 @@ def run():
                     
                     # Plot 'p_alive'
                     fig_health = px.scatter(
-                        seg_stats, 
+                        segment_analysis, 
                         x='p_alive', 
                         y='clv', 
                         size='CustomerID', 
