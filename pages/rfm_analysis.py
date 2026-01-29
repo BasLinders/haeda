@@ -583,7 +583,6 @@ def run():
                 st.write("This shows the raw text from your CSV vs. the number Python understood.")
                 
                 # 1. Get raw values from the uploaded file (before cleaning)
-                # We need to read the file again briefly just to see the raw text
                 uploaded_file.seek(0)
                 df_raw_debug = pd.read_csv(uploaded_file)
                 
@@ -596,11 +595,12 @@ def run():
                         break
                 
                 if raw_col_name:
+                    sample_indices = clean_df.sample(20).index
                     debug_comparison = pd.DataFrame({
-                        'Raw Text (CSV)': df_raw_debug[raw_col_name].head(10).astype(str),
-                        'Converted Number': clean_df['TotalSum'].head(10)
+                        'Raw Text (CSV)': df_raw_debug.loc[sample_indices, raw_col_name].astype(str),
+                        'Converted Number': clean_df.loc[sample_indices, 'TotalSum']
                     })
-                    st.table(debug_comparison)
+                    st.table(debug_comparison.style.format({'Converted Number': '{:,.2f}'}))
                 else:
                     st.warning("Could not automatically find the original TotalSum column for debugging.")
                 
