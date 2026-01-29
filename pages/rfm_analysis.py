@@ -579,30 +579,31 @@ def run():
             st.dataframe(style_rfm_table(preview_df), width='stretch')
 
             # --- DEBUG: CHECK TOTALSUM CONVERSION ---
-            with st.expander("Debug: Check Number Conversion"):
-                st.write("This shows the raw text from your CSV vs. the number Python understood.")
-                
-                # 1. Get raw values from the uploaded file (before cleaning)
-                uploaded_file.seek(0)
-                df_raw_debug = pd.read_csv(uploaded_file)
-                
-                # Find the TotalSum column (using the same mapping logic)
-                raw_col_name = None
-                possible_names = ['total_amount', 'purchase_revenue', 'price', 'value', 'bedrag', 'amount', 'total']
-                for col in df_raw_debug.columns:
-                    if any(x in col.lower() for x in possible_names):
-                        raw_col_name = col
-                        break
-                
-                if raw_col_name:
-                    sample_indices = clean_df.sample(20).index
-                    debug_comparison = pd.DataFrame({
-                        'Raw Text (CSV)': df_raw_debug.loc[sample_indices, raw_col_name].astype(str),
-                        'Converted Number': clean_df.loc[sample_indices, 'TotalSum']
-                    })
-                    st.table(debug_comparison.style.format({'Converted Number': '{:,.2f}'}))
-                else:
-                    st.warning("Could not automatically find the original TotalSum column for debugging.")
+            if uploaded_file is not None:
+                with st.expander("Debug: Check Number Conversion"):
+                    st.write("This shows the raw text from your CSV vs. the number Python understood.")
+                    
+                    # 1. Get raw values from the uploaded file (before cleaning)
+                    uploaded_file.seek(0)
+                    df_raw_debug = pd.read_csv(uploaded_file)
+                    
+                    # Find the TotalSum column (using the same mapping logic)
+                    raw_col_name = None
+                    possible_names = ['total_amount', 'purchase_revenue', 'price', 'value', 'bedrag', 'amount', 'total']
+                    for col in df_raw_debug.columns:
+                        if any(x in col.lower() for x in possible_names):
+                            raw_col_name = col
+                            break
+                    
+                    if raw_col_name:
+                        sample_indices = clean_df.sample(20).index
+                        debug_comparison = pd.DataFrame({
+                            'Raw Text (CSV)': df_raw_debug.loc[sample_indices, raw_col_name].astype(str),
+                            'Converted Number': clean_df.loc[sample_indices, 'TotalSum']
+                        })
+                        st.table(debug_comparison.style.format({'Converted Number': '{:,.2f}'}))
+                    else:
+                        st.warning("Could not automatically find the original TotalSum column for debugging.")
                 
             # Download Button for the processed data
             csv = final_report.to_csv().encode('utf-8')
