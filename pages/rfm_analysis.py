@@ -497,7 +497,7 @@ def run():
                 rfm_df = calculate_rfm(clean_df)
 
                 progress_bar.progress(30, text="Identifying Whales and Champions...")
-                whale_threshold = rfm_df['Monetary'].quantile(0.95)
+                whale_threshold = rfm_df['Monetary'].quantile(0.99)
                 rfm_df['Segment'] = rfm_df.apply(
                     get_segment_name, 
                     axis=1, 
