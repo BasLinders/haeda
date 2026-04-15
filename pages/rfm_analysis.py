@@ -534,7 +534,7 @@ def run():
                 rfm_df['Segment'] = rfm_df.apply(
                     get_segment_name,
                     axis=1,
-                    include_whales=False
+                    include_whales=False,
                     whale_threshold=whale_threshold,
                     whale_freq=whale_freq
                 )
