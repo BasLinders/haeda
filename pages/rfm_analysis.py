@@ -128,8 +128,6 @@ def preprocess_data(df):
         errors.append(f"Missing required columns: {', '.join(missing)}")
         return df, errors 
 
-whale_freq = st.sidebar.slider("Min. Frequency for Whale", min_value=2, max_value=5, value=3)
-
     # --- CLEANING ---
     
     # Keep only what we need
@@ -175,7 +173,8 @@ whale_freq = st.sidebar.slider("Min. Frequency for Whale", min_value=2, max_valu
     return df, errors
 
 # --- HELPERS ---
-
+whale_freq = st.sidebar.slider("Min. Frequency for Whale", min_value=2, max_value=5, value=3)
+    
 def calculate_rfm(df):
     snapshot_date = df['OrderDate'].max() + dt.timedelta(days=1)
 
