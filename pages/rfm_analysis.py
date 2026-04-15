@@ -9,6 +9,7 @@ import streamlit as st
 st.set_page_config(
     page_title="RFM Analysis",
     page_icon="📈",
+    layout="wide"
 )
 
 # --- DATA INGESTION ---
@@ -458,7 +459,7 @@ def run():
     
         | Segment | Recency (R) | Frequency (F) | Monetary (M) | Logic | Suggested Action |
         |---|---|---|---|---|---|
-        | 🐋 **Whale** | Any | ≥ 3 | 99th percentile | Exceptional spenders with proven loyalty | VIP treatment, exclusive perks, dedicated account manager |
+        | 🐋 **Whale** | Any | ≥ 3 (default) | 99th percentile | Exceptional spenders with proven loyalty | VIP treatment, exclusive perks, dedicated account manager |
         | 🏆 **Loyal Customers** | 4 – 5 | 4 – 5 | 4 – 5 | Recent, frequent, and high-value | Upsell, loyalty rewards, early access to new products |
         | 🌱 **New Customers** | 5 | 1 | Any | First purchase, very recent | Onboarding campaigns, trigger the critical second purchase |
         | 🚀 **Promising Customers** | 4 – 5 | 3 – 5 | Any | Recent and growing purchase behaviour | Nurture with targeted offers, push towards Loyal tier |
