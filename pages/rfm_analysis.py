@@ -173,6 +173,7 @@ def preprocess_data(df):
     return df, errors
 
 # --- HELPERS ---
+include_whales = st.sidebar.checkbox("Include the 'whale' segment?", value=False, help="These are customers who are extremely big spenders (99th percentile of spending).")
 whale_freq = st.sidebar.slider("Min. Frequency for Whale", min_value=2, max_value=5, value=3)
     
 def calculate_rfm(df):
@@ -208,13 +209,14 @@ def calculate_rfm(df):
 
     return rfm
 
-def get_segment_name(row, whale_threshold, whale_freq):
+def get_segment_name(row, include_whales, whale_threshold, whale_freq):
     R = row['R']
     F = row['F']
     M = row['M']
 
-    if row['Monetary'] >= whale_threshold and whale_freq >= 3:
-        return 'Whale'
+    if include_whales:
+        if row['Monetary'] >= whale_threshold and whale_freq >= 3:
+            return 'Whale'
 
     # Loyale klanten / Loyal Customers
     if R >= 4 and F >= 4 and M >= 4:
@@ -532,6 +534,7 @@ def run():
                 rfm_df['Segment'] = rfm_df.apply(
                     get_segment_name,
                     axis=1,
+                    include_whales=False
                     whale_threshold=whale_threshold,
                     whale_freq=whale_freq
                 )
@@ -769,7 +772,7 @@ def run():
                     )
                     fig_clv.update_layout(showlegend=False, xaxis_title=None, yaxis_title="Avg CLV (€)")
                     st.plotly_chart(fig_clv, use_container_width=True)
-                    st.caption("Note: If 'Whales' have lower CLV than 'Champions', they may be 'one-hit wonders' who spent a lot once but aren't likely to return.")
+                    st.caption("Note: If 'Whales' have lower CLV than 'Loyal Customers', they may be 'one-hit wonders' who spent a lot once but aren't likely to return.")
 
                 with c2:
                     #st.markdown("##### Customer Health (Probability Alive)")
