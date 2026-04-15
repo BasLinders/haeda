@@ -451,6 +451,27 @@ def run():
             **Tip:** Ensure your 'Total Amount' column does not contain currency symbols (like € or $) within the cells. 
             The tool will automatically remove rows with negative values (returns) to ensure the predictive models remain accurate.
         """)
+    with st.expander("Customer Segment Definitions", expanded=False):
+        st.markdown("""
+        Customers are assigned to segments based on their **R**, **F**, and **M** scores (each ranked 1–5).
+        The table below explains the logic behind each segment and what action to take.
+    
+        | Segment | Recency (R) | Frequency (F) | Monetary (M) | Logic | Suggested Action |
+        |---|---|---|---|---|---|
+        | 🐋 **Whale** | Any | ≥ 3 | 99th percentile | Exceptional spenders with proven loyalty | VIP treatment, exclusive perks, dedicated account manager |
+        | 🏆 **Loyal Customers** | 4 – 5 | 4 – 5 | 4 – 5 | Recent, frequent, and high-value | Upsell, loyalty rewards, early access to new products |
+        | 🌱 **New Customers** | 5 | 1 | Any | First purchase, very recent | Onboarding campaigns, trigger the critical second purchase |
+        | 🚀 **Promising Customers** | 4 – 5 | 3 – 5 | Any | Recent and growing purchase behaviour | Nurture with targeted offers, push towards Loyal tier |
+        | 😴 **Wandering Customers** | 4 – 5 | 1 – 2 | Any | Recent visitors but low repeat rate | Engagement campaigns, highlight product range |
+        | ⚠️ **Falling Asleep** | 3 | 1 – 3 | Any | Activity is tapering off | Re-engagement emails, time-limited discounts |
+        | 🚨 **At Risk** | 2 – 3 | 4 – 5 | Any | Previously active, now going quiet | "We miss you" campaigns, personalised win-back offers |
+        | 💎 **Valuable Sleepers** | 1 – 2 | 1 – 3 | 4 – 5 | Long gone, but historically high spenders | High-value win-back incentives, worth the extra effort |
+        | 💤 **Sleepers** | 1 – 2 | 1 – 3 | 1 – 3 | Inactive and low value | Low-cost automated reach-outs only |
+        | 🪦 **Lost** | 1 | 1 | 1 | Completely inactive, minimal value | Write off or include in broad, zero-cost campaigns |
+    
+        > **How scores work:** A score of **5 is always best** — most recent, most frequent, highest spend.  
+        > Segments are evaluated top-to-bottom; the first matching rule wins.
+        """)
     
     # --- STATE INITIALIZATION ---
     if 'df_raw' not in st.session_state:
