@@ -199,6 +199,14 @@ def calculate_rfm(df):
     rfm['F'] = pd.qcut(rfm['Frequency'], q=5, labels=f_labels, duplicates='drop')
     rfm['M'] = pd.qcut(rfm['Monetary'], q=5, labels=m_labels, duplicates='drop')
 
+    # If qcut fails due to insufficient unique values, fall back to simple binning
+    if rfm['R'].isna().any():
+        rfm['R'] = pd.cut(rfm['Recency'], bins=5, labels=r_labels)
+    if rfm['F'].isna().any():
+        rfm['F'] = pd.cut(rfm['Frequency'], bins=5, labels=f_labels)
+    if rfm['M'].isna().any():
+        rfm['M'] = pd.cut(rfm['Monetary'], bins=5, labels=m_labels)
+
     rfm['RFM_ID'] = rfm.apply(lambda x: f"{x['R']}{x['F']}{x['M']}", axis=1)
     rfm['RFM_score'] = rfm[['R', 'F', 'M']].sum(axis=1)
 
