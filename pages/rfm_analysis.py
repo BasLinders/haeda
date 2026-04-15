@@ -205,22 +205,51 @@ def calculate_rfm(df):
     return rfm
 
 def get_segment_name(row, whale_threshold):
+    R = row['R']
+    F = row['F']
+    M = row['M']
 
-    if row['Monetary'] >= whale_threshold:
+    if M >= whale_threshold:
         return 'Whale'
-    
-    if row['R'] >= 4 and row['F'] >= 4:
-        return 'Champions'
-    elif row['R'] >= 3 and row['F'] >= 3:
+
+    # Loyale klanten / Loyal Customers
+    if R >= 4 and F >= 4 and M >= 4:
         return 'Loyal Customers'
-    elif row['R'] >= 4 and row['F'] <= 2:
-        return 'Recent / New'
-    elif row['R'] <= 2 and row['F'] >= 4:
+
+    # Veelbelovende klanten / Promising Customers
+    if R >= 4 and F >= 3:
+        return 'Promising Customers'
+
+    # Dwalende klanten / Wandering Customers
+    if R >= 4 and F == 2:
+        return 'Wandering Customers'
+
+    # Nieuwe klanten / New Customers
+    if R == 5 and F == 1:
+        return 'New Customers'
+
+    # Vallen bijna in slaap / Falling Asleep
+    if R == 3 and F <= 3:
+        return 'Falling Asleep'
+
+    # Slapers / Sleepers
+    if R <= 2 and F <= 3 and M >= 3:
+        return 'Sleepers'
+
+    # Risico / At Risk
+    if 2 <= R <= 3 and F >= 4:
         return 'At Risk'
-    elif row['R'] <= 2 and row['F'] <= 2:
+
+    # Waardevolle slapers / Valuable Sleepers
+    if R <= 2 and F <= 3 and M >= 4:
+        return 'Valuable Sleepers'
+
+    # Verloren / Lost
+    if R == 1 and F == 1 and M == 1:
         return 'Lost'
-    else:
-        return 'Average / Others'
+
+    # Default for all other cases
+    return 'Average / Others'
     
 def calculate_predictive_rfm(df):
     snapshot_date = df['OrderDate'].max() + dt.timedelta(days=1)
