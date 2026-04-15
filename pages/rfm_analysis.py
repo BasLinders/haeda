@@ -538,6 +538,15 @@ def run():
                 predictive_df = calculate_predictive_rfm(clean_df)
 
                 progress_bar.progress(70, text="Fitting BG/NBD model (Predicting Churn Risk)...")
+                
+                st.write("--- Debug Predictive Data ---")
+                st.write(f"Total customers: {len(predictive_df)}")
+                st.write(f"Customers with repeat purchases (x > 0): {(predictive_df['x'] > 0).sum()}")
+                st.write(f"Total repeat purchases: {predictive_df['x'].sum()}")
+                st.write(f"Monetary mean: {predictive_df['m'].mean():.2f}")
+                st.write(f"Monetary std: {predictive_df['m'].std():.2f}")
+                st.write("---")
+                
                 predictive_df, bgf_model = predictions(predictive_df)
 
                 progress_bar.progress(90, text="Fitting Gamma-Gamma model (Forecasting CLV)...")
