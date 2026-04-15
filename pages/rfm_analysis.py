@@ -213,7 +213,7 @@ def get_segment_name(row, whale_threshold, whale_freq):
     F = row['F']
     M = row['M']
 
-    if row['Monetary'] >= whale_threshold and F >= 3:
+    if row['Monetary'] >= whale_threshold and whale_freq >= 3:
         return 'Whale'
 
     # Loyale klanten / Loyal Customers
@@ -532,7 +532,8 @@ def run():
                 rfm_df['Segment'] = rfm_df.apply(
                     get_segment_name,
                     axis=1,
-                    whale_threshold=whale_threshold
+                    whale_threshold=whale_threshold,
+                    whale_freq=whale_freq
                 )
         
                 # --- Predictive Models ---
