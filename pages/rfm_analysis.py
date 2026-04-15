@@ -128,6 +128,8 @@ def preprocess_data(df):
         errors.append(f"Missing required columns: {', '.join(missing)}")
         return df, errors 
 
+whale_freq = st.sidebar.slider("Min. Frequency for Whale", min_value=2, max_value=5, value=3)
+
     # --- CLEANING ---
     
     # Keep only what we need
@@ -207,12 +209,12 @@ def calculate_rfm(df):
 
     return rfm
 
-def get_segment_name(row, whale_threshold):
+def get_segment_name(row, whale_threshold, whale_freq):
     R = row['R']
     F = row['F']
     M = row['M']
 
-    if M >= whale_threshold:
+    if row['Monetary'] >= whale_threshold and F >= 3:
         return 'Whale'
 
     # Loyale klanten / Loyal Customers
