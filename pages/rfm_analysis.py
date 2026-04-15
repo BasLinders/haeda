@@ -195,9 +195,9 @@ def calculate_rfm(df):
     f_labels = range(5, 0, -1)
     m_labels = range(1, 6)
 
-    rfm['R'] = pd.qcut(rfm['Recency'], q=5, labels=r_labels)
-    rfm['F'] = pd.qcut(rfm['Frequency'], q=5, labels=f_labels)
-    rfm['M'] = pd.qcut(rfm['Monetary'], q=5, labels=m_labels)
+    rfm['R'] = pd.qcut(rfm['Recency'], q=5, labels=r_labels, duplicates='drop')
+    rfm['F'] = pd.qcut(rfm['Frequency'], q=5, labels=f_labels, duplicates='drop')
+    rfm['M'] = pd.qcut(rfm['Monetary'], q=5, labels=m_labels, duplicates='drop')
 
     rfm['RFM_ID'] = rfm.apply(lambda x: f"{x['R']}{x['F']}{x['M']}", axis=1)
     rfm['RFM_score'] = rfm[['R', 'F', 'M']].sum(axis=1)
@@ -516,66 +516,54 @@ def run():
         # CALCULATION BLOCK
         if analyze_btn:
             progress_bar = st.progress(0, text="Initializing analysis...")
-            
-            # Initialize final_report to None to ensure scope safety
-            final_report = None 
-            
+            final_report = None
+        
             try:
                 # --- Classic RFM ---
                 progress_bar.progress(10, text="Calculating historical RFM metrics...")
                 rfm_df = calculate_rfm(clean_df)
-
+        
                 progress_bar.progress(30, text="Identifying Whales and Champions...")
                 whale_threshold = rfm_df['Monetary'].quantile(0.99)
                 rfm_df['Segment'] = rfm_df.apply(
-                    get_segment_name, 
-                    axis=1, 
+                    get_segment_name,
+                    axis=1,
                     whale_threshold=whale_threshold
                 )
-
+        
                 # --- Predictive Models ---
                 progress_bar.progress(50, text="Preparing data for statistical models...")
                 predictive_df = calculate_predictive_rfm(clean_df)
-
+        
                 progress_bar.progress(70, text="Fitting BG/NBD model (Predicting Churn Risk)...")
-                
-                st.write("--- Debug Predictive Data ---")
-                st.write(f"Total customers: {len(predictive_df)}")
-                st.write(f"Customers with repeat purchases (x > 0): {(predictive_df['x'] > 0).sum()}")
-                st.write(f"Total repeat purchases: {predictive_df['x'].sum()}")
-                st.write(f"Monetary mean: {predictive_df['m'].mean():.2f}")
-                st.write(f"Monetary std: {predictive_df['m'].std():.2f}")
-                st.write("---")
-                
                 predictive_df, bgf_model = predictions(predictive_df)
-
+        
                 progress_bar.progress(90, text="Fitting Gamma-Gamma model (Forecasting CLV)...")
                 final_predictive = calculate_clv(predictive_df, bgf_model)
-                
+        
                 # Merge
                 final_report = rfm_df.join(final_predictive[['predicted_purchases', 'p_alive', 'clv']])
-                
                 progress_bar.progress(100, text="Analysis Complete!")
                 st.success("Analysis complete, including Predictive Models.")
-                
+        
             except Exception as e:
                 progress_bar.empty()
-                st.warning(f"Could not run predictions: {e}. Showing Classic RFM only.")
-                
-                # Fallback: Use the basic RFM dataframe if predictions fail
+                st.error(f"Error running predictions: {e}")
+                st.warning("Showing Classic RFM only.")
                 if 'rfm_df' in locals():
                     final_report = rfm_df.copy()
                 else:
                     st.error("Critical error in RFM calculation.")
                     st.stop()
-
+        
+            # Always check if final_report exists, even if predictions failed
             if final_report is not None:
                 st.session_state['results'] = final_report
-
-        # VISUALIZATION BLOCK
-        # Runs if results exist in memory (either just calculated, or from history)
-        if st.session_state['results'] is not None:
-            final_report = st.session_state['results']
+        
+                # VISUALIZATION BLOCK
+                # Runs if results exist in memory (either just calculated, or from history)
+                if st.session_state['results'] is not None:
+                    final_report = st.session_state['results']
 
             # --- OUTPUT ---
             with st.expander("How to interpret the Analysis", expanded=False):
