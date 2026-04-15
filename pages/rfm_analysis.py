@@ -125,9 +125,8 @@ def preprocess_data(df):
     missing = [col for col in required_cols if col not in df.columns]
     
     if missing:
-        # Return specific error to help user debug
         errors.append(f"Missing required columns: {', '.join(missing)}")
-        return df, errors, False
+        return df, errors 
 
     # --- CLEANING ---
     
@@ -178,37 +177,33 @@ def preprocess_data(df):
 def calculate_rfm(df):
     snapshot_date = df['OrderDate'].max() + dt.timedelta(days=1)
 
-    rfm = df.groupby('CustomerID').agg({
-        'OrderDate': lambda x: (snapshot_date - x.max()).days, 
-        'OrderID': 'count',
-        'TotalSum': 'sum'
-    })
+    rfm = df.groupby('CustomerID').agg(
+        Recency=('OrderDate', lambda x: (snapshot_date - x.max()).days),
+        Frequency=('OrderID', 'count'),
+        Monetary=('TotalSum', 'sum')
+    )
 
-    rfm.rename(columns={
-        'OrderDate': 'Recency',
-        'OrderID': 'Frequency',
-        'TotalSum': 'Monetary'
-    }, inplace=True)
+    q = 5
 
-    # Quantiles / scores (1-5)
-    r_labels = range(5, 0, -1)
-    f_labels = range(5, 0, -1)
-    m_labels = range(1, 6)
+    def score(series, ascending=True):
+        """
+        Ranks the series first (method='first' breaks all ties),
+        then applies qcut — this guarantees exactly q unique bin edges,
+        eliminating the 'Bin labels must be one fewer...' crash.
+        """
+        ranked = series.rank(method='first')
+        labels = list(range(1, q + 1))
+        scores = pd.qcut(ranked, q=q, labels=labels).astype(float)
+        if not ascending:
+            scores = q + 1 - scores  # Flip so that lower Recency = higher score
+        return scores.astype(int)
 
-    rfm['R'] = pd.qcut(rfm['Recency'], q=5, labels=r_labels, duplicates='drop')
-    rfm['F'] = pd.qcut(rfm['Frequency'], q=5, labels=f_labels, duplicates='drop')
-    rfm['M'] = pd.qcut(rfm['Monetary'], q=5, labels=m_labels, duplicates='drop')
+    rfm['R'] = score(rfm['Recency'], ascending=False)  # Lower days = better
+    rfm['F'] = score(rfm['Frequency'], ascending=True)  # Higher freq = better (was inverted!)
+    rfm['M'] = score(rfm['Monetary'], ascending=True)   # Higher spend = better
 
-    # If qcut fails due to insufficient unique values, fall back to simple binning
-    if rfm['R'].isna().any():
-        rfm['R'] = pd.cut(rfm['Recency'], bins=5, labels=r_labels)
-    if rfm['F'].isna().any():
-        rfm['F'] = pd.cut(rfm['Frequency'], bins=5, labels=f_labels)
-    if rfm['M'].isna().any():
-        rfm['M'] = pd.cut(rfm['Monetary'], bins=5, labels=m_labels)
-
-    rfm['RFM_ID'] = rfm.apply(lambda x: f"{x['R']}{x['F']}{x['M']}", axis=1)
-    rfm['RFM_score'] = rfm[['R', 'F', 'M']].sum(axis=1)
+    rfm['RFM_ID'] = rfm['R'].astype(str) + rfm['F'].astype(str) + rfm['M'].astype(str)
+    rfm['RFM_score'] = rfm['R'] + rfm['F'] + rfm['M']
 
     return rfm
 
