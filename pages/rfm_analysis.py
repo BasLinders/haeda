@@ -196,7 +196,7 @@ def calculate_rfm(df):
     m_labels = range(1, 6)
 
     rfm['R'] = pd.qcut(rfm['Recency'].rank(method='first'), q=5, labels=r_labels)
-    rfm['F'] = pd.qcut(rfm['Frequency'].rank(method='first'), q=5, labels=f_labels)
+    rfm['F'] = pd.qcut(rfm['Frequency'].rank(method='last'), q=5, labels=f_labels) # get last frequency
     rfm['M'] = pd.qcut(rfm['Monetary'].rank(method='first'), q=5, labels=m_labels)
 
     rfm['RFM_ID'] = rfm.apply(lambda x: f"{x['R']}{x['F']}{x['M']}", axis=1)
