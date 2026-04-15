@@ -176,6 +176,8 @@ def preprocess_data(df):
 include_whales = st.sidebar.checkbox("Include the 'whale' segment?", value=False, help="These are customers who are extremely big spenders (99th percentile of spending).")
 if include_whales:
     whale_freq = st.sidebar.slider("Min. Frequency for Whale", min_value=2, max_value=5, value=3)
+else:
+    whale_freq = 3
     
 def calculate_rfm(df):
     snapshot_date = df['OrderDate'].max() + dt.timedelta(days=1)
