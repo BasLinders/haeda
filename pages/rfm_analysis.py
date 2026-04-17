@@ -723,6 +723,7 @@ def run():
                 st.subheader("Actionable Customer Lists")
                 
                 col1, col2 = st.columns(2)
+                p_alive_threshold = repeat_customers['p_alive'].median()
                 
                 with col1:
                     st.markdown("#### Top 5 MVPs (Highest CLV)")
@@ -784,7 +785,6 @@ def run():
 
                 # Visualization: CLV vs Churn Risk
                 c1, c2 = st.columns(2)
-                p_alive_threshold = repeat_customers['p_alive'].median()
                 
                 with c1:
                     st.markdown("##### Average Lifetime Value (12 months) by Segment")
