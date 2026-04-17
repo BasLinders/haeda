@@ -823,7 +823,7 @@ def run():
                     st.markdown("##### Customer Health vs. Value")
                     
                     # Plot 'p_alive'
-                    p_alive_threshold = final_report['p_alive'].median()
+                    p_alive_threshold = repeat_customers['p_alive'].median()
                     
                     fig_health = px.scatter(
                         segment_analysis, 
