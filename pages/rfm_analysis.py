@@ -763,7 +763,7 @@ def run():
                     # LOGIC: Filter for customers with High Monetary value (> 75th percentile) 
                     # but Low P(Alive) (< 50%)
                     high_value_mask = final_report['Monetary'] > final_report['Monetary'].quantile(0.75)
-                    at_risk_mask = final_report['p_alive'] < 0.5
+                    at_risk_mask = final_report['p_alive'] < p_alive_threshold
                     
                     risky_vips = final_report[high_value_mask & at_risk_mask]
                     
@@ -784,6 +784,7 @@ def run():
 
                 # Visualization: CLV vs Churn Risk
                 c1, c2 = st.columns(2)
+                p_alive_threshold = repeat_customers['p_alive'].median()
                 
                 with c1:
                     st.markdown("##### Average Lifetime Value (12 months) by Segment")
@@ -822,9 +823,7 @@ def run():
 
                     st.markdown("##### Customer Health vs. Value")
                     
-                    # Plot 'p_alive'
-                    p_alive_threshold = repeat_customers['p_alive'].median()
-                    
+                    # Plot 'p_alive'                   
                     fig_health = px.scatter(
                         segment_analysis, 
                         x='p_alive', 
@@ -849,8 +848,9 @@ def run():
                     )
                     st.plotly_chart(fig_health, use_container_width=True)
                     st.caption(
-                        f"The dashed line sits at the **median P(Alive) of {p_alive_threshold:.2f}** for this dataset. "
-                        "Bubbles to the left are relatively at risk; bubbles to the right are relatively healthy."
+                        f"The dashed line sits at the **median P(Alive) of {p_alive_threshold:.2f}** "
+                        "across repeat customers. Bubbles to the left are relatively at risk; "
+                        "bubbles to the right are relatively healthy."
                     )
 
                 # 4. Drills Down: Actionable Lists
