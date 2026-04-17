@@ -599,7 +599,7 @@ def run():
                     final_report = st.session_state['results']
 
             # --- OUTPUT ---
-
+            with st.expander("How to interpret the results", expanded=False):
                 st.subheader("Predictive Analytics (BG/NBD & Gamma-Gamma)")
                 st.markdown("""
                 Unlike classic RFM which looks backward, these metrics forecast future behavior:
