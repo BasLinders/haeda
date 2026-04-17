@@ -801,26 +801,6 @@ def run():
                     st.caption("Note: If 'Whales' have lower CLV than 'Loyal Customers', they may be 'one-hit wonders' who spent a lot once but aren't likely to return.")
 
                 with c2:
-                    #st.markdown("##### Customer Health (Probability Alive)")
-                    # Interpret p_alive as "Health". 1.0 = Healthy, 0.0 = Churned.
-                    #fig_alive = px.scatter(
-                    #    segment_analysis,
-                    #    x='p_alive',
-                    #    y='Segment',
-                    #    size='CustomerID', # Bubble size = number of customers
-                    #    color='Segment',
-                    #    title="Segment Health vs. Size"
-                    #)
-                    #fig_alive.update_layout(
-                    #    showlegend=False, 
-                    #    xaxis_title="Probability of Being Alive (0=Lost, 1=Active)", 
-                    #    xaxis_range=[0, 1.1]
-                    #)
-                    # Add a vertical line at 0.5 to show the "danger zone"
-                    #fig_alive.add_vline(x=0.5, line_dash="dash", line_color="red", annotation_text="Churn Threshold")
-                    #st.plotly_chart(fig_alive, use_container_width=True)
-                    #st.caption("Bubbles to the **left** are effectively lost. Bubbles to the **right** are active. Size represents the number of customers.")
-
                     st.markdown("##### Customer Health vs. Value")
                     
                     # Plot 'p_alive'                   
