@@ -823,6 +823,8 @@ def run():
                     st.markdown("##### Customer Health vs. Value")
                     
                     # Plot 'p_alive'
+                    p_alive_threshold = final_report['p_alive'].median()
+                    
                     fig_health = px.scatter(
                         segment_analysis, 
                         x='p_alive', 
@@ -833,7 +835,12 @@ def run():
                     )
                     
                     # Add a vertical line at 50% probability
-                    fig_health.add_vline(x=0.5, line_dash="dash", line_color="red", annotation_text="Churn Threshold")
+                    fig_health.add_vline(
+                        x=p_alive_threshold, 
+                        line_dash="dash", 
+                        line_color="red", 
+                        annotation_text="Churn Threshold"
+                    )
                     
                     fig_health.update_layout(
                         xaxis_title="Probability Alive (0.0 = Dead, 1.0 = Active)",
@@ -841,7 +848,10 @@ def run():
                         xaxis_range=[-0.05, 1.05] # Add padding so bubbles don't get cut off
                     )
                     st.plotly_chart(fig_health, use_container_width=True)
-                    st.caption("Bubbles to the **left** are effectively lost. Bubbles to the **right** are active. Size represents the number of customers.")
+                    st.caption(
+                        f"The dashed line sits at the **median P(Alive) of {p_alive_threshold:.2f}** for this dataset. "
+                        "Bubbles to the left are relatively at risk; bubbles to the right are relatively healthy."
+                    )
 
                 # 4. Drills Down: Actionable Lists
                 st.divider()
