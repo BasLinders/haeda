@@ -335,30 +335,29 @@ def calculate_clv(predictive_rfm, bgf, months=12):
     return predictive_rfm
 
 def style_rfm_table(df):
+    segment_styles = {
+        'Whale':               'background-color: #FFF9C4; color: #000; font-weight: bold',
+        'Loyal Customers':     'background-color: #E8F5E9; color: #2E7D32',
+        'Promising Customers': 'background-color: #E3F2FD; color: #1565C0',
+        'New Customers':       'background-color: #E0F7FA; color: #00695C',
+        'Wandering Customers': 'background-color: #FFF3E0; color: #E65100',
+        'Falling Asleep':      'background-color: #FFF8E1; color: #F57F17',
+        'At Risk':             'background-color: #FFEBEE; color: #B71C1C',
+        'Valuable Sleepers':   'background-color: #F3E5F5; color: #6A1B9A',
+        'Sleepers':            'background-color: #ECEFF1; color: #37474F',
+        'Lost':                'background-color: #FFCDD2; color: #7F0000',
+    }
+
     def highlight_segments(row):
-        # Default style
-        style = [''] * len(row)
-        
-        # Highlight Whales in Gold
-        if row['Segment'] == 'Whale':
-            style = ['background-color: #FFF9C4; color: black; font-weight: bold'] * len(row)
-        
-        # Highlight At Risk/Lost in Light Red
-        elif row['Segment'] in ['At Risk', 'Lost']:
-            style = ['background-color: #FFEBEE; color: #B71C1C'] * len(row)
-            
-        # Highlight Champions in Light Green
-        elif row['Segment'] == 'Champions':
-            style = ['background-color: #E8F5E9; color: #2E7D32'] * len(row)
-            
-        return style
+        style = segment_styles.get(row['Segment'], '')
+        return [style] * len(row)
 
     styled_df = df.style.apply(highlight_segments, axis=1)\
                         .format({
-                            'Monetary': '€{:,.2f}',
-                            'clv': '€{:,.2f}',
-                            'p_alive': '{:.2%}',
-                            'predicted_purchases': '{:.2f}'
+                            'Monetary':             '€{:,.2f}',
+                            'clv':                  '€{:,.2f}',
+                            'p_alive':              '{:.2%}',
+                            'predicted_purchases':  '{:.2f}'
                         })
     return styled_df
     
@@ -453,13 +452,14 @@ def run():
             The tool will automatically remove rows with negative values (returns) to ensure the predictive models remain accurate.
         """)
     with st.expander("Customer Segment Definitions", expanded=False):
+        whale_row = "| 🐋 **Whale** | Any | ≥ 3 (default) | 99th percentile | Exceptional spenders with proven loyalty | VIP treatment, exclusive perks, dedicated account manager |" if include_whales else ""
         st.markdown("""
         Customers are assigned to segments based on their **R**, **F**, and **M** scores (each ranked 1–5).
         The table below explains the logic behind each segment and what action to take.
     
         | Segment | Recency (R) | Frequency (F) | Monetary (M) | Logic | Suggested Action |
         |---|---|---|---|---|---|
-        | 🐋 **Whale** | Any | ≥ 3 (default) | 99th percentile | Exceptional spenders with proven loyalty | VIP treatment, exclusive perks, dedicated account manager |
+        {whale_row}
         | 🏆 **Loyal Customers** | 4 – 5 | 4 – 5 | 4 – 5 | Recent, frequent, and high-value | Upsell, loyalty rewards, early access to new products |
         | 🌱 **New Customers** | 5 | 1 | Any | First purchase, very recent | Onboarding campaigns, trigger the critical second purchase |
         | 🚀 **Promising Customers** | 4 – 5 | 3 – 5 | Any | Recent and growing purchase behaviour | Nurture with targeted offers, push towards Loyal tier |
@@ -559,7 +559,7 @@ def run():
                 rfm_df['Segment'] = rfm_df.apply(
                     get_segment_name,
                     axis=1,
-                    include_whales=False,
+                    include_whales=include_whales,
                     whale_threshold=whale_threshold,
                     whale_freq=whale_freq
                 )
@@ -599,24 +599,6 @@ def run():
                     final_report = st.session_state['results']
 
             # --- OUTPUT ---
-            with st.expander("How to interpret the Analysis", expanded=False):
-                st.subheader("Customer Segmentation (Classic RFM)")
-                st.markdown("""
-                * **Whale**: The top-tier revenue drivers. These customers are in the **95th percentile** of total spend. 
-                    * *Suggestion: High-touch VIP support and exclusive rewards.*
-                * **Champions**: The best of the best. They bought recently, buy often, and spend heavily.
-                    * *Suggestion: Reward them. They can be early adopters for new products.*
-                * **Loyal Customers**: Steady and reliable. They return frequently and spend well.
-                    * *Suggestion: Use upsell strategies to move them into the 'Champion' or 'Whale' category.*
-                * **Recent / New**: Customers who made their first/only purchases very recently.
-                    * *Suggestion: Onboarding campaigns to trigger that critical second purchase.*
-                * **At Risk**: Former frequent buyers who haven't returned in a while.
-                    * *Suggestion: Send 'We miss you' discount codes or personalized re-engagement emails.*
-                * **Lost**: Low frequency, low monetary value, and haven't bought in a long time.
-                    * *Suggestion: Don't overspend on marketing here; focus on low-cost automated reach-outs.*
-                """)
-
-                st.divider()
 
                 st.subheader("Predictive Analytics (BG/NBD & Gamma-Gamma)")
                 st.markdown("""
@@ -838,17 +820,17 @@ def run():
                 st.subheader("Actionable Intelligence")
                 
                 # Find "Champions" who are actually at risk (High RFM score, but low p_alive)
-                risky_champions = final_report[
-                    (final_report['Segment'] == 'Champions') & 
-                    (final_report['p_alive'] < 0.5)
+                risky_vips = final_report[
+                    (final_report['Segment'].isin(['Loyal Customers', 'Whale', 'Promising Customers'])) &
+                    (final_report['p_alive'] < p_alive_threshold)
                 ].sort_values('clv', ascending=False).head(10)
                 
-                if not risky_champions.empty:
-                    st.warning(f"**Urgent Attention:** Found {len(risky_champions)} 'Champions' with high churn risk.")
-                    st.write("These customers spent heavily in the past but the model predicts they have stopped engaging. **Contact them immediately.**")
-                    st.dataframe(risky_champions[['p_alive', 'clv', 'Recency', 'Frequency', 'Monetary']].style.format({'p_alive': '{:.2%}', 'clv': '€{:.2f}'}))
+                if not risky_vips.empty:
+                    st.warning(f"**Urgent Attention:** Found {len(risky_vips)} high-value customers with elevated churn risk.")
+                    st.write("These customers have strong purchase history but the model predicts declining engagement. **Contact them immediately.**")
+                    st.dataframe(risky_vips[['Segment', 'p_alive', 'clv', 'Recency', 'Frequency', 'Monetary']].style.format({'p_alive': '{:.2%}', 'clv': '€{:.2f}'}))
                 else:
-                    st.success("Your Champions are healthy! No immediate churn risk detected in the top tier.")
+                    st.success("Your top-tier customers are healthy! No immediate churn risk detected.")
     else:
         # State when no file is uploaded
         st.info("Please upload a CSV file in the sidebar to get started.")
