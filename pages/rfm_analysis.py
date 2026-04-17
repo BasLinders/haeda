@@ -606,7 +606,6 @@ def run():
                 
                 * **Frequency ($x$)**: The count of **repeat** transactions. We ignore the first purchase to establish a baseline of "loyalty."
                 * **Recency ($t_x$)**: The "active lifespan": the days between their very first and very last purchase.
-                * **Age ($T$)**: How long it has been since we first saw this customer. 
                 * **P(Alive)**: The probability (0.0 to 1.0) that a customer is still "active." If this drops, the customer is likely churning.
                 * **Expected Purchases**: How many orders this specific person is statistically likely to place in the next 30 days.
                 * **CLV**: The predicted total value of the customer over the next 12 months, adjusted for the "time value of money."
@@ -828,7 +827,7 @@ def run():
                 if not risky_vips.empty:
                     st.warning(f"**Urgent Attention:** Found {len(risky_vips)} high-value customers with elevated churn risk.")
                     st.write("These customers have strong purchase history but the model predicts declining engagement. **Contact them immediately.**")
-                    st.dataframe(risky_vips[['Segment', 'p_alive', 'clv', 'T', 'Recency', 'Frequency', 'Monetary']].style.format({'p_alive': '{:.2%}', 'clv': '€{:.2f}'}))
+                    st.dataframe(risky_vips[['Segment', 'p_alive', 'clv', 'Recency', 'Frequency', 'Monetary']].style.format({'p_alive': '{:.2%}', 'clv': '€{:.2f}'}))
                 else:
                     st.success("Your top-tier customers are healthy! No immediate churn risk detected.")
     else:
