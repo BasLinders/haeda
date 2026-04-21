@@ -665,7 +665,7 @@ def run():
             # --- DEBUG: CHECK TOTALSUM CONVERSION ---
             if uploaded_file is not None:
                 with st.expander("Debug: Check Number Conversion"):
-                    st.write("This shows the raw text from your CSV vs. the number Python understood.")
+                    st.write("This shows the raw text from your CSV vs. the number the tool understood.")
                     
                     # 1. Get raw values from the uploaded file (before cleaning)
                     uploaded_file.seek(0)
@@ -694,14 +694,14 @@ def run():
 
             # Fill NaN for one-time buyers; prevents column shifting in CSV
             export_df['predicted_purchases'] = export_df['predicted_purchases'].fillna(0)
-            export_df['p_alive']             = export_df['p_alive'].fillna(0)
-            export_df['clv']                 = export_df['clv'].fillna(0)
+            export_df['p_alive'] = export_df['p_alive'].fillna(0)
+            export_df['clv'] = export_df['clv'].fillna(0)
             
             # Round to sensible precision (avoids floating point errors in final report)
             round_map = {
-                'Monetary':            2,
-                'clv':                 2,
-                'p_alive':             4,
+                'Monetary': 2,
+                'clv': 2,
+                'p_alive': 4,
                 'predicted_purchases': 4
             }
             for col, decimals in round_map.items():
