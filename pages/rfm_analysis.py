@@ -691,6 +691,11 @@ def run():
                 
             # Download Button for the processed data
             export_df = final_report.copy()
+
+            # Fill NaN for one-time buyers; prevents column shifting in CSV
+            export_df['predicted_purchases'] = export_df['predicted_purchases'].fillna(0)
+            export_df['p_alive']             = export_df['p_alive'].fillna(0)
+            export_df['clv']                 = export_df['clv'].fillna(0)
             
             # Round to sensible precision (avoids floating point errors in final report)
             round_map = {
@@ -703,15 +708,21 @@ def run():
                 if col in export_df.columns:
                     export_df[col] = export_df[col].round(decimals)
             
-            # Semicolon delimiter + period decimal: readable by both European and American tools
-            csv = export_df.to_csv(sep=';', decimal='.').encode('utf-8')
-            
-            st.download_button(
-                label="Download Full Analysis as CSV",
-                data=csv,
-                file_name='rfm_analysis_output.csv',
-                mime='text/csv',
-            )
+            col1, col2 = st.columns(2)
+            with col1:
+                st.download_button(
+                    label="Download CSV (European)",
+                    data=export_df.to_csv(sep=';', decimal=',').encode('utf-8'),
+                    file_name='rfm_analysis_output_EU.csv',
+                    mime='text/csv',
+                )
+            with col2:
+                st.download_button(
+                    label="Download CSV (US/UK)",
+                    data=export_df.to_csv(sep=',', decimal='.').encode('utf-8'),
+                    file_name='rfm_analysis_output_US.csv',
+                    mime='text/csv',
+                )
 
             st.subheader("Visual Insights")
 
