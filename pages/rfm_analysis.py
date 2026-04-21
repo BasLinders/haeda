@@ -296,6 +296,10 @@ def predictions(predictive_rfm):
         t, predictive_rfm['x'], predictive_rfm['t_x'], predictive_rfm['T']
     )
 
+    # Winsorize extreme values
+    cap = predictive_rfm['predicted_purchases'].quantile(0.99)
+    predictive_rfm['predicted_purchases'] = predictive_rfm['predicted_purchases'].clip(upper=cap)
+
     # Probability the customer is still active
     predictive_rfm['p_alive'] = bgf.conditional_probability_alive(
         predictive_rfm['x'], predictive_rfm['t_x'], predictive_rfm['T']
