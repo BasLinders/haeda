@@ -619,6 +619,11 @@ def run():
             sort_col = 'clv' if 'clv' in final_report.columns else 'Monetary'
             preview_df = final_report.sort_values(sort_col, ascending=False).head(1000).copy()
             
+            # Fill NaN for one-time buyers who have no predictive metrics
+            preview_df['predicted_purchases'] = preview_df['predicted_purchases'].fillna(0)
+            preview_df['p_alive'] = preview_df['p_alive'].fillna(0)
+            preview_df['clv'] = preview_df['clv'].fillna(0)
+            
             round_map = {
                 'Monetary': 2,
                 'clv': 2,
