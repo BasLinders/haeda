@@ -849,16 +849,21 @@ def run():
                     display_vips['Monetary'] = display_vips['Monetary'].round(2)
                     display_vips['clv'] = display_vips['clv'].round(2)
                     display_vips['p_alive'] = display_vips['p_alive'].round(3)
-
-                    # Rename columsns for user clarity
+                    
+                    # Rename
                     display_vips = display_vips.rename(columns={
                         'Monetary': 'Total Spend (Historical)',
-                        'clv':      'Predicted Value (12m)'
+                        'clv':      'Predicted Value (12m)',
+                        'p_alive':  'Retention Probability'
                     })
-                    
+                
                     st.warning(f"**Urgent Attention:** Found {len(risky_vips)} high-value customers with elevated churn risk.")
                     st.write("These customers have strong purchase history but the model predicts declining engagement. **Contact them immediately.**")
-                    st.dataframe(display_vips.style.format({'p_alive': '{:.2%}', 'clv': '€{:.2f}', 'Monetary': '€{:.2f}'}))
+                    st.dataframe(display_vips.style.format({
+                        'Retention Probability': '{:.2%}',
+                        'Predicted Value (12m)': '€{:.2f}',
+                        'Total Spend (Historical)': '€{:.2f}'
+                    }))
                 else:
                     st.success("Your top-tier customers are healthy! No immediate churn risk detected.")
     else:
