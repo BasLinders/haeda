@@ -691,7 +691,13 @@ def run():
                 
             # Download Button for the processed data
             export_df = final_report.copy()
-            export_df.loc[export_df['clv'].isna(), 'p_alive'] = None
+            
+            # p_alive is meaningless for one-time buyers
+            export_df.loc[export_df['clv'].isna(), 'p_alive'] = np.nan
+            
+            # Force float dtype. None assignment can silently convert to object dtype,
+            # which causes to_csv(decimal=',') to skip decimal replacement for this column
+            export_df['p_alive'] = export_df['p_alive'].astype(float)
 
             # Round to sensible precision (avoids floating point errors in final report)
             round_map = {
@@ -707,7 +713,7 @@ def run():
             
             # Fill NaN for one-time buyers; prevents column shifting in CSV
             export_df['predicted_purchases'] = export_df['predicted_purchases'].fillna(0)
-            export_df['p_alive'] = export_df['p_alive'].fillna('')
+            #export_df['p_alive'] = export_df['p_alive'].fillna('')
             export_df['clv'] = export_df['clv'].fillna(0)
             
             col1, col2 = st.columns(2)
