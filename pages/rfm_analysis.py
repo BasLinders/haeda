@@ -86,7 +86,7 @@ def preprocess_data(df):
     # Order matters: Put specific keywords FIRST.
     rename_map = {
         'OrderID': ['transactie', 'transaction_id', 'order_id', 'bonid', 'order', 'Order ID'],
-        'CustomerID': ['customer', 'klant', 'user_id', 'identifier', 'email', 'contact', 'Customer ID'],
+        'CustomerID': ['customer', 'klant', 'user_id', 'identifier', 'email', 'contact', 'Customer ID', 'id'],
         'OrderDate': ['order_date', 'datum', 'timestamp', 'time', 'created_at', 'Order Date'],
         'TotalSum': ['total_amount', 'purchase_revenue', 'price', 'value', 'bedrag', 'amount', 'total', 'Total Amount']
     }
@@ -111,7 +111,7 @@ def preprocess_data(df):
         for keyword in keywords:
             for col in df.columns:
                 # Check if keyword is in column AND column isn't already used
-                if keyword in col and col not in used_columns:
+                if keyword.lower() in col and col not in used_columns:
                     found_columns[standard_name] = col
                     used_columns.add(col)
                     match_found = True
@@ -141,7 +141,7 @@ def preprocess_data(df):
     df['OrderDate'] = pd.to_datetime(df['OrderDate'], dayfirst=True, errors='coerce')
     if df['OrderDate'].isna().all():
          errors.append("Could not parse any valid dates from 'OrderDate' column.")
-         return df, errors, False
+         return df, errors
     df.dropna(subset=['OrderDate'], inplace=True)
 
     # Clean TotalSum
@@ -219,7 +219,7 @@ def get_segment_name(row, include_whales, whale_threshold, whale_freq):
     M = row['M']
 
     if include_whales:
-        if row['Monetary'] >= whale_threshold and whale_freq >= 3:
+        if row['Monetary'] >= whale_threshold and row['F'] >= whale_freq:
             return 'Whale'
 
     # Loyale klanten / Loyal Customers
@@ -281,7 +281,8 @@ def calculate_predictive_rfm(df):
     predictive_rfm['T'] = (snapshot_date - predictive_rfm['first_purchase']).dt.days
     
     # Monetary Value (m): Average value of REPEAT purchases
-    predictive_rfm['m'] = df.groupby('CustomerID')['TotalSum'].mean()
+    repeat_purchases = df.sort_values('OrderDate').groupby('CustomerID', group_keys=False).apply(lambda x: x.iloc[1:])
+    predictive_rfm['m'] = repeat_purchases.groupby('CustomerID')['TotalSum'].mean()
     
     return predictive_rfm[['x', 't_x', 'T', 'm']]
 
@@ -352,13 +353,14 @@ def style_rfm_table(df):
         style = segment_styles.get(row['Segment'], '')
         return [style] * len(row)
 
-    styled_df = df.style.apply(highlight_segments, axis=1)\
-                        .format({
-                            'Monetary':             '€{:,.2f}',
-                            'clv':                  '€{:,.2f}',
-                            'p_alive':              '{:.2%}',
-                            'predicted_purchases':  '{:.2f}'
-                        })
+    available_formats = {
+        'Monetary':             '€{:,.2f}',
+        'clv':                  '€{:,.2f}',
+        'p_alive':              '{:.2%}',
+        'predicted_purchases':  '{:.2f}'
+    }
+    fmt = {k: v for k, v in available_formats.items() if k in df.columns}
+    styled_df = df.style.apply(highlight_segments, axis=1).format(fmt)
     return styled_df
     
 # --- VISUALIZATIONS ---
@@ -646,7 +648,22 @@ def run():
                         st.warning("Could not automatically find the original TotalSum column for debugging.")
                 
             # Download Button for the processed data
-            csv = final_report.to_csv().encode('utf-8')
+            export_df = final_report.copy()
+            
+            # Round to sensible precision (avoids floating point errors in final report)
+            round_map = {
+                'Monetary':            2,
+                'clv':                 2,
+                'p_alive':             4,
+                'predicted_purchases': 4
+            }
+            for col, decimals in round_map.items():
+                if col in export_df.columns:
+                    export_df[col] = export_df[col].round(decimals)
+            
+            # Semicolon delimiter + period decimal: readable by both European and American tools
+            csv = export_df.to_csv(sep=';', decimal='.').encode('utf-8')
+            
             st.download_button(
                 label="Download Full Analysis as CSV",
                 data=csv,
