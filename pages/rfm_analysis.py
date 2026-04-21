@@ -692,12 +692,7 @@ def run():
             # Download Button for the processed data
             export_df = final_report.copy()
             export_df.loc[export_df['clv'].isna(), 'p_alive'] = None
-            
-            # Fill NaN for one-time buyers; prevents column shifting in CSV
-            export_df['predicted_purchases'] = export_df['predicted_purchases'].fillna(0)
-            export_df['p_alive'] = export_df['p_alive'].fillna('')
-            export_df['clv'] = export_df['clv'].fillna(0)
-            
+
             # Round to sensible precision (avoids floating point errors in final report)
             round_map = {
                 'Monetary': 2,
@@ -705,9 +700,15 @@ def run():
                 'p_alive': 4,
                 'predicted_purchases': 4
             }
+        
             for col, decimals in round_map.items():
                 if col in export_df.columns:
                     export_df[col] = export_df[col].round(decimals)
+            
+            # Fill NaN for one-time buyers; prevents column shifting in CSV
+            export_df['predicted_purchases'] = export_df['predicted_purchases'].fillna(0)
+            export_df['p_alive'] = export_df['p_alive'].fillna('')
+            export_df['clv'] = export_df['clv'].fillna(0)
             
             col1, col2 = st.columns(2)
             with col1:
