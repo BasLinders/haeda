@@ -845,13 +845,14 @@ def run():
                 ].sort_values('clv', ascending=False).head(10)
                 
                 if not risky_vips.empty:
-                    display_vips = risky_vips[['p_alive', 'Monetary', 'Segment']].copy()
+                    display_vips = risky_vips[['Segment', 'p_alive', 'clv', 'Recency', 'Frequency', 'Monetary']].copy()
                     display_vips['Monetary'] = display_vips['Monetary'].round(2)
+                    display_vips['clv'] = display_vips['clv'].round(2)
                     display_vips['p_alive'] = display_vips['p_alive'].round(3)
                     
                     st.warning(f"**Urgent Attention:** Found {len(risky_vips)} high-value customers with elevated churn risk.")
                     st.write("These customers have strong purchase history but the model predicts declining engagement. **Contact them immediately.**")
-                    st.dataframe(risky_vips[['Segment', 'p_alive', 'clv', 'Recency', 'Frequency', 'Monetary']].style.format({'p_alive': '{:.2%}', 'clv': '€{:.2f}'}))
+                    st.dataframe(display_vips.style.format({'p_alive': '{:.2%}', 'clv': '€{:.2f}', 'Monetary': '€{:.2f}'}))
                 else:
                     st.success("Your top-tier customers are healthy! No immediate churn risk detected.")
     else:
