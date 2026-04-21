@@ -286,21 +286,17 @@ def calculate_predictive_rfm(df):
     
     return predictive_rfm[['x', 't_x', 'T', 'm']]
 
-def predictions(predictive_rfm):
-    bgf = BetaGeoFitter(penalizer_coef=0.01)
+def predictions(predictive_rfm, t=30):
+    bgf = BetaGeoFitter(penalizer_coef=0.5)  # Increase from 0.01 — reduces extreme extrapolation at the source
     bgf.fit(predictive_rfm['x'], predictive_rfm['t_x'], predictive_rfm['T'])
 
-    # Predict purchases for the next 30 days
-    t = 30 
     predictive_rfm['predicted_purchases'] = bgf.conditional_expected_number_of_purchases_up_to_time(
         t, predictive_rfm['x'], predictive_rfm['t_x'], predictive_rfm['T']
     )
 
-    # Winsorize extreme values
-    cap = predictive_rfm['predicted_purchases'].quantile(0.99)
-    predictive_rfm['predicted_purchases'] = predictive_rfm['predicted_purchases'].clip(upper=cap)
+    # Hard cap: max 1 purchase/day is the realistic ceiling for any customer
+    predictive_rfm['predicted_purchases'] = predictive_rfm['predicted_purchases'].clip(upper=t)
 
-    # Probability the customer is still active
     predictive_rfm['p_alive'] = bgf.conditional_probability_alive(
         predictive_rfm['x'], predictive_rfm['t_x'], predictive_rfm['T']
     )
