@@ -691,10 +691,11 @@ def run():
                 
             # Download Button for the processed data
             export_df = final_report.copy()
-
+            export_df.loc[export_df['clv'].isna(), 'p_alive'] = None
+            
             # Fill NaN for one-time buyers; prevents column shifting in CSV
             export_df['predicted_purchases'] = export_df['predicted_purchases'].fillna(0)
-            export_df['p_alive'] = export_df['p_alive'].fillna(0)
+            export_df['p_alive'] = export_df['p_alive'].fillna('')
             export_df['clv'] = export_df['clv'].fillna(0)
             
             # Round to sensible precision (avoids floating point errors in final report)
