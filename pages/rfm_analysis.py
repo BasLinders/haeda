@@ -578,13 +578,6 @@ def run():
         
                 # Merge
                 final_report = rfm_df.join(final_predictive[['predicted_purchases', 'p_alive', 'clv']])
-
-                with st.expander("Debug: Raw values after join"):
-                    st.write("predicted_purchases — max, min, nulls:")
-                    st.write(final_report['predicted_purchases'].agg(['max', 'min', 'count']).to_frame())
-                    st.write(f"NaN count: {final_report['predicted_purchases'].isna().sum()}")
-                    st.write("Sample of rows where predicted_purchases > 30:")
-                    st.write(final_report[final_report['predicted_purchases'] > 30][['predicted_purchases', 'p_alive', 'clv']].head(10))
     
                 progress_bar.progress(100, text="Analysis Complete!")
                 st.success("Analysis complete, including Predictive Models.")
@@ -642,7 +635,32 @@ def run():
                 if col in preview_df.columns:
                     preview_df[col] = preview_df[col].round(decimals)
             
-            st.dataframe(style_rfm_table(preview_df), width='stretch')
+            st.dataframe(
+                style_rfm_table(preview_df),
+                column_config={
+                    'predicted_purchases': st.column_config.NumberColumn(
+                        'Predicted Purchases (30d)', 
+                        format='%.4f',
+                        width='medium'
+                    ),
+                    'p_alive': st.column_config.NumberColumn(
+                        'Retention Probability', 
+                        format='%.4f',
+                        width='medium'
+                    ),
+                    'clv': st.column_config.NumberColumn(
+                        'Predicted Value (12m)', 
+                        format='€%.2f',
+                        width='medium'
+                    ),
+                    'Monetary': st.column_config.NumberColumn(
+                        'Total Spend (Historical)', 
+                        format='€%.2f',
+                        width='medium'
+                    ),
+                },
+                use_container_width=True
+            )
 
             # --- DEBUG: CHECK TOTALSUM CONVERSION ---
             if uploaded_file is not None:
