@@ -617,7 +617,18 @@ def run():
             st.caption("*Displaying top 1,000 customers sorted by Monetary value. Download the CSV for the full list.*")
 
             sort_col = 'clv' if 'clv' in final_report.columns else 'Monetary'
-            preview_df = final_report.sort_values(sort_col, ascending=False).head(1000)
+            preview_df = final_report.sort_values(sort_col, ascending=False).head(1000).copy()
+            
+            round_map = {
+                'Monetary': 2,
+                'clv': 2,
+                'p_alive': 4,
+                'predicted_purchases': 4
+            }
+            for col, decimals in round_map.items():
+                if col in preview_df.columns:
+                    preview_df[col] = preview_df[col].round(decimals)
+            
             st.dataframe(style_rfm_table(preview_df), width='stretch')
 
             # --- DEBUG: CHECK TOTALSUM CONVERSION ---
