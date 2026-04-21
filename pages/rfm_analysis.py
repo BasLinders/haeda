@@ -578,6 +578,14 @@ def run():
         
                 # Merge
                 final_report = rfm_df.join(final_predictive[['predicted_purchases', 'p_alive', 'clv']])
+
+                with st.expander("Debug: Raw values after join"):
+                    st.write("predicted_purchases — max, min, nulls:")
+                    st.write(final_report['predicted_purchases'].agg(['max', 'min', 'count']).to_frame())
+                    st.write(f"NaN count: {final_report['predicted_purchases'].isna().sum()}")
+                    st.write("Sample of rows where predicted_purchases > 30:")
+                    st.write(final_report[final_report['predicted_purchases'] > 30][['predicted_purchases', 'p_alive', 'clv']].head(10))
+    
                 progress_bar.progress(100, text="Analysis Complete!")
                 st.success("Analysis complete, including Predictive Models.")
         
