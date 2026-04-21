@@ -770,9 +770,12 @@ def run():
                     risky_vips = risky_vips.sort_values('Monetary', ascending=False).head(5)
                     
                     if not risky_vips.empty:
+                        display_vips = risky_vips[['p_alive', 'Monetary', 'Segment']].copy()
+                        display_vips['Monetary'] = display_vips['Monetary'].round(2)
+                        display_vips['p_alive'] = display_vips['p_alive'].round(3)
+    
                         st.dataframe(
-                            risky_vips[['p_alive', 'Monetary', 'Segment']]
-                            .style.format({'p_alive': '{:.1%}', 'Monetary': '€{:.2f}'}),
+                            display_vips.style.format({'p_alive': '{:.1%}', 'Monetary': '€{:.2f}'}),
                             width='stretch'
                         )
                         st.caption("These are high-spenders showing signs of churn. **Contact them immediately.**")
