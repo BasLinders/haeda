@@ -849,6 +849,12 @@ def run():
                     display_vips['Monetary'] = display_vips['Monetary'].round(2)
                     display_vips['clv'] = display_vips['clv'].round(2)
                     display_vips['p_alive'] = display_vips['p_alive'].round(3)
+
+                    # Rename columsns for user clarity
+                    display_vips = display_vips.rename(columns={
+                        'Monetary': 'Total Spend (Historical)',
+                        'clv':      'Predicted Value (12m)'
+                    })
                     
                     st.warning(f"**Urgent Attention:** Found {len(risky_vips)} high-value customers with elevated churn risk.")
                     st.write("These customers have strong purchase history but the model predicts declining engagement. **Contact them immediately.**")
