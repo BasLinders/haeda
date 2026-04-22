@@ -732,7 +732,7 @@ def run():
                     mime='text/csv',
                 )
 
-            st.subheader("Visual Insights")
+            st.subheader("Analysis Insights")
 
             tab0, tab1, tab2 = st.tabs(["Summary", "Customer Segmentation", "Predictive Trends"])
 
