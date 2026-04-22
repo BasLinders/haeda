@@ -734,8 +734,66 @@ def run():
 
             st.subheader("Visual Insights")
 
-            tab1, tab2 = st.tabs(["Customer Segmentation", "Predictive Trends"])
+            tab0, tab1, tab2 = st.tabs(["Summary", "Customer Segmentation", "Predictive Trends"])
 
+            with tab0:
+                # Build summary per segment from final_report
+                summary = final_report.groupby('Segment').agg(
+                    Customers=('Frequency', 'count'),
+                    Orders=('Frequency', 'sum'),
+                    Revenue=('Monetary', 'sum')
+                ).reset_index()
+            
+                total_customers = summary['Customers'].sum()
+                total_orders = summary['Orders'].sum()
+                total_revenue = summary['Revenue'].sum()
+            
+                summary['% of Customers'] = summary['Customers'] / total_customers
+                summary['% of Orders'] = summary['Orders'] / total_orders
+                summary['Avg. Orders per Customer'] = summary['Orders'] / summary['Customers']
+                summary['% of Revenue'] = summary['Revenue'] / total_revenue
+                summary['Avg. Revenue per Order'] = summary['Revenue'] / summary['Orders']
+                summary['Avg. Revenue per Customer'] = summary['Revenue'] / summary['Customers']
+            
+                # Total row
+                total_row = pd.DataFrame([{
+                    'Segment': 'Total',
+                    'Customers': total_customers,
+                    '% of Customers': 1.0,
+                    'Orders': total_orders,
+                    '% of Orders': 1.0,
+                    'Avg. Orders per Customer': total_orders / total_customers,
+                    'Revenue': total_revenue,
+                    '% of Revenue': 1.0,
+                    'Avg. Revenue per Order': total_revenue / total_orders,
+                    'Avg. Revenue per Customer': total_revenue / total_customers,
+                }])
+            
+                summary = pd.concat([summary, total_row], ignore_index=True)
+                summary = summary.rename(columns={'Segment': 'Label'})
+            
+                # Bold the Total row
+                def bold_total(row):
+                    style = 'font-weight: bold' if row['Label'] == 'Total' else ''
+                    return [style] * len(row)
+            
+                st.dataframe(
+                    summary.style
+                        .apply(bold_total, axis=1)
+                        .format({
+                            'Customers':                 '{:,.0f}',
+                            '% of Customers':            '{:.2%}',
+                            'Orders':                    '{:,.0f}',
+                            '% of Orders':               '{:.2%}',
+                            'Avg. Orders per Customer':  '{:.2f}',
+                            'Revenue':                   '€{:,.2f}',
+                            '% of Revenue':              '{:.2%}',
+                            'Avg. Revenue per Order':    '€{:,.2f}',
+                            'Avg. Revenue per Customer': '€{:,.2f}',
+                        }),
+                    use_container_width=True
+                )
+    
             with tab1:
                 st.subheader("The Customer Landscape")
                 col1, col2 = st.columns([2, 1]) 
