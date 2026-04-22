@@ -85,10 +85,10 @@ def preprocess_data(df):
     # Define keywords (Removed dangerous generic words like 'id', 'date', 'sum')
     # Order matters: Put specific keywords FIRST.
     rename_map = {
-        'OrderID': ['transactie', 'transaction_id', 'order_id', 'bonid', 'order', 'Order ID'],
-        'CustomerID': ['customer', 'klant', 'user_id', 'identifier', 'email', 'contact', 'Customer ID', 'id'],
-        'OrderDate': ['order_date', 'datum', 'timestamp', 'time', 'created_at', 'Order Date'],
-        'TotalSum': ['total_amount', 'purchase_revenue', 'price', 'value', 'bedrag', 'amount', 'total', 'Total Amount']
+        'OrderID': ['transactie', 'transaction_id', 'order_id', 'bonid', 'order', 'Order_ID'],
+        'CustomerID': ['customer', 'klant', 'user_id', 'identifier', 'email', 'contact', 'Customer_ID', 'id'],
+        'OrderDate': ['order_date', 'datum', 'timestamp', 'time', 'created_at', 'Order_Date'],
+        'TotalSum': ['total_amount', 'purchase_revenue', 'price', 'value', 'bedrag', 'amount', 'total', 'Total_Amount']
     }
 
     found_columns = {}
@@ -440,10 +440,10 @@ def run():
         requirements_data = {
             "Requirement": ["Order ID", "Customer ID", "Order Date", "Total Amount"],
             "Accepted Keywords": [
-                "transactie, transaction, order, bonid, transaction_id",
-                "customer, klant, id, user_id, identifier, e-mail address",
-                "date, datum, time, timestamp, dag",
-                "sum, amount, bedrag, total, price, value, purchase_revenue, revenue"
+                "transactie, transaction, order, bonid, transaction_id, order_id",
+                "customer, klant, id, user_id, identifier, email, contact",
+                "date, datum, time, timestamp, dag, order_date, created_at",
+                "sum, amount, bedrag, total, price, value, purchase_revenue, revenue, total_amount, total"
             ],
             "Format": ["Text or Number", "Text or Number", "YYYY-MM-DD", "Numeric (e.g. 10.50)"]
         }
