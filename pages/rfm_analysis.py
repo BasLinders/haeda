@@ -461,7 +461,8 @@ def run():
     
         | Segment | Recency (R) | Frequency (F) | Monetary (M) | Logic | Suggested Action |
         |---|---|---|---|---|---|
-        {whale_row}
+        if include_whales:
+            {whale_row}
         | 🏆 **Loyal Customers** | 4 – 5 | 4 – 5 | 4 – 5 | Recent, frequent, and high-value | Upsell, loyalty rewards, early access to new products |
         | 🌱 **New Customers** | 5 | 1 | Any | First purchase, very recent | Onboarding campaigns, trigger the critical second purchase |
         | 🚀 **Promising Customers** | 4 – 5 | 3 – 5 | Any | Recent and growing purchase behaviour | Nurture with targeted offers, push towards Loyal tier |
