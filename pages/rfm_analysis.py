@@ -254,7 +254,7 @@ def get_segment_name(row, include_whales, whale_threshold, whale_freq):
     if R >= 2 and R <= 3 and F >= 4:
         return 'At Risk'
 
-    # Ex-loyalist
+    # Lost loyalists
     if R == 1 and F >= 4 and M >= 4:
         return 'Lost Loyalists'
 
@@ -472,7 +472,7 @@ def run():
         | 😴 **Wandering Customers** | 4 – 5 | 2 | Any | Recent visitors but low repeat rate | Engagement campaigns, highlight product range |
         | ⚠️ **Falling Asleep** | 3 | 1 – 3 | Any | Activity is tapering off | Re-engagement emails, time-limited discounts |
         | 🚨 **At Risk** | 2 – 3 | 4 – 5 | Any | Previously active, now going quiet | "We miss you" campaigns, personalised win-back offers |
-        | ⚠️🏆 **Ex-Loyalists** | 1 | 4 - 5 | 4 - 5 | Inactive, but used to be frequent and high-value | Consider personal outreach or adopt in dedicated remarketing campaigns |
+        | ⚠️🏆 **Lost Loyalists** | 1 | 4 - 5 | 4 - 5 | Inactive, but used to be frequent and high-value | Consider personal outreach or adopt in dedicated remarketing campaigns |
         | 💎 **Valuable Sleepers** | 1 – 2 | 1 – 3 | 4 – 5 | Long gone, but historically high spenders | High-value win-back incentives, worth the extra effort |
         | 💤 **Sleepers** | 1 – 2 | 1 – 3 | 1 – 3 | Inactive and low value | Low-cost automated reach-outs only |
         | 🪦 **Lost** | 1 | 1 | 1 | Completely inactive, minimal value | Write off or include in broad, zero-cost campaigns |
