@@ -141,8 +141,12 @@ def run_fit(data: pd.DataFrame, config_json: str, future_regressors: pd.DataFram
     return ForecastingEngine.fit(data, config, future_regressors)
 
 
+FORECAST_LINE_COLOR = "#3987e5"
+FORECAST_BAND_COLOR = "rgba(57, 135, 229, 0.18)"
+ACTUALS_COLOR = "#898781"
+
+
 def render_result(result, history_by_target: dict):
-    st.write(result.conclusion)
     for target_name, tf in result.targets.items():
         st.divider()
         st.subheader(f"Forecast: {target_name}")
@@ -187,6 +191,8 @@ def render_result(result, history_by_target: dict):
                 ),
             )
 
+        st.markdown(f"**In plain terms:** {tf.conclusion}")
+
         chart_data = VizEngine.get_forecasting_chart_data(
             history_by_target[target_name], tf, target_name
         )
@@ -205,7 +211,7 @@ def render_result(result, history_by_target: dict):
             go.Scatter(
                 x=band_df["ds"], y=band_df["yhat_lower"],
                 line=dict(width=0), fill="tonexty",
-                fillcolor="rgba(99, 110, 250, 0.2)",
+                fillcolor=FORECAST_BAND_COLOR,
                 name="expected range", hoverinfo="skip",
             )
         )
@@ -213,20 +219,22 @@ def render_result(result, history_by_target: dict):
             go.Scatter(
                 x=hist_df["ds"], y=hist_df["y"],
                 mode="markers", name="actuals",
-                marker=dict(color="rgba(80, 80, 80, 0.6)", size=4),
+                marker=dict(color=ACTUALS_COLOR, size=5),
             )
         )
         fig.add_trace(
             go.Scatter(
                 x=fc_df["ds"], y=fc_df["yhat"],
                 mode="lines", name="forecast",
-                line=dict(color="#636EFA", width=2),
+                line=dict(color=FORECAST_LINE_COLOR, width=2.5),
             )
         )
         fig.update_layout(
             margin=dict(l=10, r=10, t=30, b=10),
             legend=dict(orientation="h", y=1.1),
             height=420,
+            hovermode="x unified",
+            xaxis=dict(rangeslider=dict(visible=True), type="date"),
         )
         st.plotly_chart(fig, use_container_width=True)
         st.caption(chart_data["chart_caption"])
@@ -237,7 +245,19 @@ def render_result(result, history_by_target: dict):
                 if comp_df.empty:
                     continue
                 st.write(f"**{comp_name}**")
-                st.line_chart(comp_df.set_index("ds")["value"])
+                comp_fig = go.Figure(
+                    go.Scatter(
+                        x=comp_df["ds"], y=comp_df["value"],
+                        mode="lines", line=dict(color=FORECAST_LINE_COLOR, width=2),
+                        showlegend=False,
+                    )
+                )
+                comp_fig.update_layout(
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    height=220,
+                    hovermode="x unified",
+                )
+                st.plotly_chart(comp_fig, use_container_width=True)
 
 
 # ---------------------------------------------------------------------------
