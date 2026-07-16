@@ -147,113 +147,116 @@ ACTUALS_COLOR = "#898781"
 
 
 def render_result(result, history_by_target: dict):
-    for target_name, tf in result.targets.items():
-        st.divider()
-        st.subheader(f"Forecast: {target_name}")
+    tabs = st.tabs([f"Forecast: {name.capitalize()}" for name in result.targets.keys()])
+    for tab, (target_name, tf) in zip(tabs, result.targets.items()):
+        with tab:
+            render_target_forecast(target_name, tf, history_by_target)
 
-        for w in tf.warnings:
-            st.warning(w)
 
-        col1, col2, col3 = st.columns(3)
-        if tf.cv_metrics is None:
-            st.info(
-                "Not enough history yet to check how accurate this forecast tends to be — "
-                "add more historical data to see quality metrics."
-            )
-        else:
-            col1.metric(
-                "MAPE (average error %)",
-                f"{tf.cv_metrics.mape:.1%}",
-                help=(
-                    "MAPE = Mean Absolute Percentage Error. On average, how far off past "
-                    "forecasts were from what actually happened, as a percentage. Lower is "
-                    "better — e.g. 10% means forecasts were typically off by about a tenth of "
-                    "the actual value."
-                ),
-            )
-            col2.metric(
-                "RMSE (typical error size)",
-                f"{tf.cv_metrics.rmse:.2f}",
-                help=(
-                    "RMSE = Root Mean Square Error. The typical size of the error in the same "
-                    "units as your data (e.g. conversions or currency), with bigger misses "
-                    "counted extra heavily. Lower is better; compare it to the size of your "
-                    "usual numbers to judge whether it's a big deal."
-                ),
-            )
-            col3.metric(
-                "Accuracy checked over",
-                f"{tf.cv_metrics.horizon_periods} period(s)",
-                help=(
-                    "These accuracy numbers come from replaying history: hiding the most "
-                    "recent stretch of real data, forecasting it as if it were the future, and "
-                    "comparing to what actually happened. This is how long that hidden stretch was."
-                ),
-            )
+def render_target_forecast(target_name, tf, history_by_target: dict):
+    for w in tf.warnings:
+        st.warning(w)
 
-        st.markdown(f"**In plain terms:** {tf.conclusion}")
+    col1, col2, col3 = st.columns(3)
+    if tf.cv_metrics is None:
+        st.info(
+            "Not enough history yet to check how accurate this forecast tends to be — "
+            "add more historical data to see quality metrics."
+        )
+    else:
+        col1.metric(
+            "MAPE (average error %)",
+            f"{tf.cv_metrics.mape:.1%}",
+            help=(
+                "MAPE = Mean Absolute Percentage Error. On average, how far off past "
+                "forecasts were from what actually happened, as a percentage. Lower is "
+                "better — e.g. 10% means forecasts were typically off by about a tenth of "
+                "the actual value."
+            ),
+        )
+        col2.metric(
+            "RMSE (typical error size)",
+            f"{tf.cv_metrics.rmse:.2f}",
+            help=(
+                "RMSE = Root Mean Square Error. The typical size of the error in the same "
+                "units as your data (e.g. conversions or currency), with bigger misses "
+                "counted extra heavily. Lower is better; compare it to the size of your "
+                "usual numbers to judge whether it's a big deal."
+            ),
+        )
+        col3.metric(
+            "Accuracy checked over",
+            f"{tf.cv_metrics.horizon_periods} period(s)",
+            help=(
+                "These accuracy numbers come from replaying history: hiding the most "
+                "recent stretch of real data, forecasting it as if it were the future, and "
+                "comparing to what actually happened. This is how long that hidden stretch was."
+            ),
+        )
 
-        chart_data = VizEngine.get_forecasting_chart_data(
-            history_by_target[target_name], tf, target_name
-        )
-        fig = go.Figure()
-        hist_df = pd.DataFrame(chart_data["history"])
-        fc_df = pd.DataFrame(chart_data["forecast"])
-        band_df = pd.DataFrame(chart_data["expected_range"])
+    st.markdown(f"**In plain terms:** {tf.conclusion}")
 
-        fig.add_trace(
-            go.Scatter(
-                x=band_df["ds"], y=band_df["yhat_upper"],
-                line=dict(width=0), showlegend=False, hoverinfo="skip",
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=band_df["ds"], y=band_df["yhat_lower"],
-                line=dict(width=0), fill="tonexty",
-                fillcolor=FORECAST_BAND_COLOR,
-                name="expected range", hoverinfo="skip",
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=hist_df["ds"], y=hist_df["y"],
-                mode="markers", name="actuals",
-                marker=dict(color=ACTUALS_COLOR, size=5),
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=fc_df["ds"], y=fc_df["yhat"],
-                mode="lines", name="forecast",
-                line=dict(color=FORECAST_LINE_COLOR, width=2.5),
-            )
-        )
-        fig.update_layout(
-            margin=dict(l=10, r=10, t=30, b=10),
-            legend=dict(orientation="h", y=1.1),
-            height=420,
-            hovermode="x unified",
-            xaxis=dict(rangeslider=dict(visible=True), type="date"),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        st.caption(chart_data["chart_caption"])
+    chart_data = VizEngine.get_forecasting_chart_data(
+        history_by_target[target_name], tf, target_name
+    )
+    fig = go.Figure()
+    hist_df = pd.DataFrame(chart_data["history"])
+    fc_df = pd.DataFrame(chart_data["forecast"])
+    band_df = pd.DataFrame(chart_data["expected_range"])
 
-        last_actual_date = hist_df["ds"].max()
-        future_table = fc_df.merge(band_df, on="ds")
-        future_table = future_table[future_table["ds"] > last_actual_date].copy()
-        future_table = future_table.rename(
-            columns={
-                "ds": "Date",
-                "yhat": "Forecast",
-                "yhat_lower": "Low estimate",
-                "yhat_upper": "High estimate",
-            }
+    fig.add_trace(
+        go.Scatter(
+            x=band_df["ds"], y=band_df["yhat_upper"],
+            line=dict(width=0), showlegend=False, hoverinfo="skip",
         )
-        for col in ["Forecast", "Low estimate", "High estimate"]:
-            future_table[col] = future_table[col].round(1)
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=band_df["ds"], y=band_df["yhat_lower"],
+            line=dict(width=0), fill="tonexty",
+            fillcolor=FORECAST_BAND_COLOR,
+            name="expected range", hoverinfo="skip",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=hist_df["ds"], y=hist_df["y"],
+            mode="markers", name="actuals",
+            marker=dict(color=ACTUALS_COLOR, size=5),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=fc_df["ds"], y=fc_df["yhat"],
+            mode="lines", name="forecast",
+            line=dict(color=FORECAST_LINE_COLOR, width=2.5),
+        )
+    )
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=30, b=10),
+        legend=dict(orientation="h", y=1.1),
+        height=420,
+        hovermode="x unified",
+        xaxis=dict(rangeslider=dict(visible=True), type="date"),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    st.caption(chart_data["chart_caption"])
 
-        st.write(f"**Forecast values** ({len(future_table)} period(s) ahead)")
+    last_actual_date = hist_df["ds"].max()
+    future_table = fc_df.merge(band_df, on="ds")
+    future_table = future_table[future_table["ds"] > last_actual_date].copy()
+    future_table = future_table.rename(
+        columns={
+            "ds": "Date",
+            "yhat": "Forecast",
+            "yhat_lower": "Low estimate",
+            "yhat_upper": "High estimate",
+        }
+    )
+    for col in ["Forecast", "Low estimate", "High estimate"]:
+        future_table[col] = future_table[col].round(1)
+
+    with st.expander(f"Forecast values ({len(future_table)} period(s) ahead)"):
         st.caption("Select cells and copy (Ctrl/Cmd+C), or download as CSV below.")
         st.dataframe(future_table, use_container_width=True, hide_index=True)
         st.download_button(
@@ -264,25 +267,25 @@ def render_result(result, history_by_target: dict):
             key=f"download_{target_name}",
         )
 
-        with st.expander("Why does the forecast look like this?"):
-            for comp_name, records in tf.components.items():
-                comp_df = pd.DataFrame(records)
-                if comp_df.empty:
-                    continue
-                st.write(f"**{comp_name}**")
-                comp_fig = go.Figure(
-                    go.Scatter(
-                        x=comp_df["ds"], y=comp_df["value"],
-                        mode="lines", line=dict(color=FORECAST_LINE_COLOR, width=2),
-                        showlegend=False,
-                    )
+    with st.expander("Why does the forecast look like this?"):
+        for comp_name, records in tf.components.items():
+            comp_df = pd.DataFrame(records)
+            if comp_df.empty:
+                continue
+            st.write(f"**{comp_name}**")
+            comp_fig = go.Figure(
+                go.Scatter(
+                    x=comp_df["ds"], y=comp_df["value"],
+                    mode="lines", line=dict(color=FORECAST_LINE_COLOR, width=2),
+                    showlegend=False,
                 )
-                comp_fig.update_layout(
-                    margin=dict(l=10, r=10, t=10, b=10),
-                    height=220,
-                    hovermode="x unified",
-                )
-                st.plotly_chart(comp_fig, use_container_width=True)
+            )
+            comp_fig.update_layout(
+                margin=dict(l=10, r=10, t=10, b=10),
+                height=220,
+                hovermode="x unified",
+            )
+            st.plotly_chart(comp_fig, use_container_width=True)
 
 
 # ---------------------------------------------------------------------------
