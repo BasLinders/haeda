@@ -11,7 +11,7 @@ logo_url = "https://cdn.homerun.co/49305/hh-woordmerk-rgb-blue-met-discriptor166
 st.image(logo_url, width=200)
 
 st.title("Advanced Exploratory Data Analysis")
-st.write("### <span style='color: orange;'>v0.1-beta</span>", unsafe_allow_html=True)
+st.write("### <span style='color: orange;'>v2.0-beta</span>", unsafe_allow_html=True)
 st.write("""
 This is the main page for the Advanced Exploratory Data Analysis Toolkit. You can navigate to individual apps using the sidebar.
 
