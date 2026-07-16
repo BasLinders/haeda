@@ -21,6 +21,7 @@ This collection of tools makes it easy to analyze and visualize data from variou
 ### Features
 <span style='color:#009900; font-weight: 600; margin-right: 6px;'>&#10003;</span>**Market Basket analysis**: Find frequently bought combinations on product / category level<br>
 <span style='color:#009900; font-weight: 600; margin-right: 6px;'>&#10003;</span>**RFM Analysis with CLV predictions**: Segment customers and predict their lifetime value<br>
+<span style='color:#009900; font-weight: 600; margin-right: 6px;'>&#10003;</span>**Demand Forecasting**: Upload historical conversions/revenue (or generate a demo dataset) and get a forecast with an uncertainty band, cross-validation quality metrics, seasonality/holiday handling, and optional covariates like marketing spend or weather<br>
 
 ### How to Use
 - Select a page from the sidebar to view different tools.
