@@ -153,6 +153,25 @@ _PERIOD_NOUNS = {
     ForecastGranularity.MONTHLY: "month",
 }
 
+_GRANULARITY_FREQ = {
+    ForecastGranularity.DAILY: "D",
+    ForecastGranularity.WEEKLY: "W-MON",
+    ForecastGranularity.MONTHLY: "MS",
+}
+
+
+def last_resampled_date(dates, granularity):
+    """The last *complete* historical bucket at the chosen granularity.
+
+    `dates` are raw (e.g. daily) actual dates. For weekly/monthly granularity
+    these don't line up with the engine's own resampled bins — comparing a
+    raw last-actual date directly against the resampled forecast series would
+    misclassify a trailing partial bucket as "future". Mirrors the engine's
+    own resample call so the history/future split lines up exactly.
+    """
+    freq = _GRANULARITY_FREQ[granularity]
+    return pd.Series(0, index=pd.to_datetime(dates)).resample(freq).sum().index.max()
+
 
 def period_noun(granularity, count: int) -> str:
     """e.g. period_noun(ForecastGranularity.DAILY, 30) -> 'days'."""
@@ -228,9 +247,9 @@ def render_target_forecast(target_name, tf, history_by_target: dict, granularity
     fc_df = pd.DataFrame(chart_data["forecast"])
     band_df = pd.DataFrame(chart_data["expected_range"])
 
-    last_actual_date = hist_df["ds"].max()
+    last_actual_date = last_resampled_date(hist_df["ds"], granularity)
     future_table = fc_df.merge(band_df, on="ds")
-    future_table = future_table[future_table["ds"] > last_actual_date].copy()
+    future_table = future_table[pd.to_datetime(future_table["ds"]) > last_actual_date].copy()
     future_table = future_table.rename(
         columns={
             "ds": "Date",
@@ -246,7 +265,7 @@ def render_target_forecast(target_name, tf, history_by_target: dict, granularity
     n_periods = len(future_table)
     noun = period_noun(granularity, n_periods)
 
-    hist_fitted = fc_df[fc_df["ds"] <= last_actual_date].reset_index(drop=True)
+    hist_fitted = fc_df[pd.to_datetime(fc_df["ds"]) <= last_actual_date].reset_index(drop=True)
     offset = comparison_offset_periods(granularity, n_periods, comparison_mode)
     start_idx = len(hist_fitted) - offset
     end_idx = start_idx + n_periods
@@ -350,7 +369,19 @@ def render_target_forecast(target_name, tf, history_by_target: dict, granularity
     st.caption(chart_data["chart_caption"])
 
     with st.expander("How well does the model fit the past?"):
-        residual_df = hist_df.merge(fc_df, on="ds", how="inner")
+        # Aggregate raw actuals to the chosen granularity (summed, matching how
+        # the engine itself aggregates targets) before comparing to the fitted
+        # series — otherwise daily actuals barely overlap weekly/monthly bins.
+        freq = _GRANULARITY_FREQ[granularity]
+        resampled_actuals = (
+            hist_df.assign(ds=pd.to_datetime(hist_df["ds"]))
+            .set_index("ds")["y"]
+            .resample(freq)
+            .sum()
+            .reset_index()
+        )
+        resampled_actuals["ds"] = resampled_actuals["ds"].dt.strftime("%Y-%m-%d")
+        residual_df = resampled_actuals.merge(fc_df, on="ds", how="inner")
         residual_df["residual"] = residual_df["y"] - residual_df["yhat"]
         st.caption(
             "Actual minus forecast for every historical date — bars above zero mean the "
@@ -830,6 +861,29 @@ if regressors:
     future_regressors_df = pd.DataFrame(future_parts)
 
 st.divider()
+
+# A signature of every knob that affects the *fit* (deliberately excluding
+# comparison_mode, which is applied purely at render time and updates live
+# without needing a re-run). Compared against whatever signature produced
+# the currently-stored result, so a stale display can be flagged instead of
+# silently showing an outdated forecast after the user tweaks a setting.
+current_config_signature = (
+    date_col, conversions_col, revenue_col, granularity_label, int(periods),
+    growth_logistic, cap, floor, seasonality_multiplicative, tuple(sorted(regressors)),
+    interval_width, cv_horizon_periods,
+    tuple(map(tuple, holidays_df.fillna("").to_numpy().tolist())),
+    weather_enabled, weather_location,
+)
+
+if (
+    st.session_state.get("forecast_result") is not None
+    and st.session_state.get("forecast_config_signature") != current_config_signature
+):
+    st.warning(
+        "Your settings have changed since this forecast was generated — click "
+        "'Run forecast' below to update the chart and table."
+    )
+
 run_clicked = st.button("Run forecast", type="primary")
 
 if run_clicked:
@@ -913,6 +967,7 @@ if run_clicked:
                         )
                     st.session_state["forecast_result"] = result
                     st.session_state["forecast_history"] = history_by_target
+                    st.session_state["forecast_config_signature"] = current_config_signature
 
 if st.session_state.get("forecast_result") is not None:
     render_result(
