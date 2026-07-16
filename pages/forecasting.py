@@ -147,8 +147,57 @@ ACTUALS_COLOR = "#898781"
 RESIDUAL_POSITIVE_COLOR = "#3987e5"
 RESIDUAL_NEGATIVE_COLOR = "#e34948"
 
+_PERIOD_NOUNS = {
+    ForecastGranularity.DAILY: "day",
+    ForecastGranularity.WEEKLY: "week",
+    ForecastGranularity.MONTHLY: "month",
+}
 
-def render_result(result, history_by_target: dict):
+
+def period_noun(granularity, count: int) -> str:
+    """e.g. period_noun(ForecastGranularity.DAILY, 30) -> 'days'."""
+    noun = _PERIOD_NOUNS[granularity]
+    return noun if count == 1 else f"{noun}s"
+
+
+_YEAR_LENGTH_IN_PERIODS = {
+    ForecastGranularity.DAILY: 365,
+    ForecastGranularity.WEEKLY: 52,
+    ForecastGranularity.MONTHLY: 12,
+}
+
+COMPARISON_MODE_OPTIONS = {
+    "daily": [
+        "Previous period",
+        "Previous period (same weekdays)",
+        "Same period last year",
+        "Same period last year (same weekdays)",
+    ],
+    "weekly": ["Previous period", "Same period last year"],
+    "monthly": ["Previous period", "Same period last year"],
+}
+
+
+def comparison_offset_periods(granularity, n_periods: int, mode: str) -> int:
+    """How many periods back the comparison window should *start*, given a
+    forecast of `n_periods` periods. E.g. offset=n_periods means the window
+    immediately precedes the forecast; offset=365 (daily) means one year back.
+    "Same weekdays" variants round to the nearest multiple of 7 days so the
+    comparison window starts on the same day of the week — meaningless above
+    daily granularity, since weekly/monthly periods are already aligned.
+    """
+    if mode == "Previous period":
+        return n_periods
+    if mode == "Previous period (same weekdays)":
+        return -(-n_periods // 7) * 7  # round up to the nearest multiple of 7
+    if mode == "Same period last year":
+        return _YEAR_LENGTH_IN_PERIODS[granularity]
+    if mode == "Same period last year (same weekdays)":
+        return 364  # 52 * 7 — nearest multiple of 7 to a year, keeps weekdays aligned
+    raise ValueError(f"Unknown comparison mode: {mode!r}")
+
+
+def render_result(result, history_by_target: dict, comparison_mode: str = "Previous period"):
     target_names = list(result.targets.keys())
     tab_labels = [f"Forecast: {name.capitalize()}" for name in target_names] + ["📄 Full report"]
     tabs = st.tabs(tab_labels)
@@ -157,14 +206,18 @@ def render_result(result, history_by_target: dict):
     for tab, target_name in zip(tabs[:-1], target_names):
         with tab:
             future_tables[target_name] = render_target_forecast(
-                target_name, result.targets[target_name], history_by_target
+                target_name,
+                result.targets[target_name],
+                history_by_target,
+                result.granularity,
+                comparison_mode,
             )
 
     with tabs[-1]:
         render_full_report(result, future_tables)
 
 
-def render_target_forecast(target_name, tf, history_by_target: dict):
+def render_target_forecast(target_name, tf, history_by_target: dict, granularity, comparison_mode: str):
     for w in tf.warnings:
         st.warning(w)
 
@@ -191,21 +244,30 @@ def render_target_forecast(target_name, tf, history_by_target: dict):
 
     total_forecast = future_table["Forecast"].sum()
     n_periods = len(future_table)
-    prior_fitted = fc_df[fc_df["ds"] <= last_actual_date].tail(n_periods)
+    noun = period_noun(granularity, n_periods)
+
+    hist_fitted = fc_df[fc_df["ds"] <= last_actual_date].reset_index(drop=True)
+    offset = comparison_offset_periods(granularity, n_periods, comparison_mode)
+    start_idx = len(hist_fitted) - offset
+    end_idx = start_idx + n_periods
     delta_str = None
-    if len(prior_fitted) == n_periods and prior_fitted["yhat"].sum():
-        prior_total = prior_fitted["yhat"].sum()
-        delta_pct = (total_forecast - prior_total) / prior_total
-        delta_str = f"{delta_pct:+.1%} vs. the previous {n_periods} period(s)"
+    if start_idx >= 0 and end_idx <= len(hist_fitted):
+        prior_window = hist_fitted.iloc[start_idx:end_idx]
+        prior_total = prior_window["yhat"].sum()
+        if prior_total:
+            delta_pct = (total_forecast - prior_total) / prior_total
+            delta_str = f"{delta_pct:+.1%} vs. {comparison_mode.lower()}"
+    if delta_str is None:
+        st.caption(f"Not enough history yet to compare to '{comparison_mode.lower()}'.")
 
     st.metric(
-        f"Total forecast, next {n_periods} period(s)",
+        f"Total forecast, next {n_periods} {noun}",
         f"{total_forecast:,.0f}",
         delta=delta_str,
         help=(
-            "The sum of the forecast over the whole horizon you chose, compared to the "
-            "model's own fit over the same number of periods immediately before — a quick "
-            "read on whether things are trending up or down."
+            "The sum of the forecast over the whole horizon you chose, compared to a "
+            f"same-length window from your chosen comparison basis ('{comparison_mode}') — "
+            "a quick read on whether things are trending up or down."
         ),
     )
 
@@ -238,7 +300,7 @@ def render_target_forecast(target_name, tf, history_by_target: dict):
         )
         col3.metric(
             "Accuracy checked over",
-            f"{tf.cv_metrics.horizon_periods} period(s)",
+            f"{tf.cv_metrics.horizon_periods} {period_noun(granularity, tf.cv_metrics.horizon_periods)}",
             help=(
                 "These accuracy numbers come from replaying history: hiding the most "
                 "recent stretch of real data, forecasting it as if it were the future, and "
@@ -312,7 +374,7 @@ def render_target_forecast(target_name, tf, history_by_target: dict):
         )
         st.plotly_chart(resid_fig, use_container_width=True)
 
-    with st.expander(f"Forecast values ({len(future_table)} period(s) ahead)"):
+    with st.expander(f"Forecast values ({len(future_table)} {noun} ahead)"):
         st.caption("Select cells and copy (Ctrl/Cmd+C), or download as CSV below.")
         st.dataframe(future_table, use_container_width=True, hide_index=True)
         st.download_button(
@@ -371,9 +433,10 @@ def render_full_report(result, future_tables: dict):
                 report_lines.append(f"- {w}")
         if tf.cv_metrics is not None:
             report_lines.append("")
+            noun = period_noun(result.granularity, tf.cv_metrics.horizon_periods)
             report_lines.append(
                 f"Accuracy: MAPE {tf.cv_metrics.mape:.1%}, RMSE {tf.cv_metrics.rmse:.2f}, "
-                f"checked over {tf.cv_metrics.horizon_periods} period(s)."
+                f"checked over {tf.cv_metrics.horizon_periods} {noun}."
             )
         report_lines.append("")
 
@@ -592,12 +655,25 @@ if granularity_label == "monthly" and history_span_days < 700:
         "yearly seasonality unreliable — the forecast may still run, but treat it cautiously."
     )
 
+_UI_PERIOD_NOUNS = {"daily": "days", "weekly": "weeks", "monthly": "months"}
 periods = st.number_input(
-    "How many days/weeks/months ahead to forecast",
+    f"How many {_UI_PERIOD_NOUNS[granularity_label]} ahead to forecast",
     min_value=1,
     value=30,
     step=1,
-    help="Uses whatever granularity you picked above — e.g. 30 means 30 days if daily, 30 weeks if weekly.",
+    help=f"Based on the granularity picked above, this is a number of {_UI_PERIOD_NOUNS[granularity_label]}.",
+)
+
+comparison_mode = st.selectbox(
+    "Compare the forecast total to",
+    COMPARISON_MODE_OPTIONS[granularity_label],
+    help=(
+        "What the 'Total forecast' trend arrow is measured against. 'Previous period' uses "
+        "the stretch immediately before the forecast starts. 'Same period last year' looks "
+        "back about a year instead, for businesses with strong yearly cycles. The '(same "
+        "weekdays)' variants shift the comparison window so it starts on the same day of the "
+        "week — useful if your numbers depend a lot on weekday vs. weekend."
+    ),
 )
 
 growth_logistic = st.toggle(
@@ -664,7 +740,7 @@ with st.expander("Advanced: how confident should the forecast's shaded range be?
     cv_horizon_periods = None
     if custom_cv:
         cv_horizon_periods = st.number_input(
-            "Span to check accuracy over (in the chosen granularity's units)",
+            f"Span to check accuracy over ({_UI_PERIOD_NOUNS[granularity_label]})",
             min_value=1,
             value=int(periods),
         )
@@ -839,4 +915,6 @@ if run_clicked:
                     st.session_state["forecast_history"] = history_by_target
 
 if st.session_state.get("forecast_result") is not None:
-    render_result(st.session_state["forecast_result"], st.session_state["forecast_history"])
+    render_result(
+        st.session_state["forecast_result"], st.session_state["forecast_history"], comparison_mode
+    )
