@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 _ENCODINGS_TO_TRY = ["utf-8-sig", "utf-8", "cp1252", "latin-1"]
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 _CURRENCY_CHARS = "$€£¥₹"
 _DATE_NAME_HINTS = ("date", "dt", "day", "period", "time", "week", "month")
@@ -182,7 +183,19 @@ def best_effort_parse_dates(series: pd.Series) -> tuple[pd.Series, float, bool, 
     interpretations parse equally well but disagree on the actual date for
     at least one row (e.g. "03/04/2024" — 3 April or 4 March?), which no
     amount of heuristics can resolve from the data alone.
+
+    Strict ISO 8601 (YYYY-MM-DD) is never ambiguous — the year always leads,
+    so there's no day/month order to guess — but naively re-parsing it with
+    dayfirst=True can still "succeed" by reinterpreting the month and day
+    fields, which would otherwise falsely trip the ambiguity check on
+    perfectly clean data. Short-circuit those out before the heuristic.
     """
+    non_null = series.dropna().astype(str)
+    if not non_null.empty and non_null.str.match(_ISO_DATE_RE).all():
+        parsed = pd.to_datetime(series, format="%Y-%m-%d", errors="coerce")
+        rate = parsed.notna().sum() / len(non_null)
+        return parsed, rate, False, False
+
     parsed_mf, rate_mf = _date_parse_success_rate(series, dayfirst=False)
     parsed_df, rate_df = _date_parse_success_rate(series, dayfirst=True)
 
