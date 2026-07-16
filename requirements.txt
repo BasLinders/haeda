@@ -8,3 +8,6 @@ statsmodels==0.14.4
 mlxtend==0.23.4
 plotly
 lifetimes
+pydantic>=2.0.0
+requests
+git+https://github.com/BasLinders/first-order-engine.git@main
