@@ -41,6 +41,69 @@ st.write(
     "driving the shape."
 )
 
+with st.expander("What is this, and why would I use it?"):
+    st.markdown(
+        """
+**What it does**
+
+Takes your historical numbers — conversions, revenue, or both, one row per day, week, or
+month — and projects them forward. Instead of a single "most likely" number, you get a
+realistic range of outcomes, plus an honest check (using your own past data) of how accurate
+this kind of forecast tends to be for your business.
+
+**Why use it**
+
+- Plan budgets, staffing, or inventory around a data-backed forecast instead of a gut-feel guess.
+- See how known patterns — weekend dips, a yearly holiday peak, a recurring promotion — are
+  expected to play out, instead of a straight-line extrapolation of last month's numbers.
+- Test "what if" scenarios by adding your own covariates (e.g. a planned marketing spend, price
+  change, or weather) to see how they're expected to move the numbers.
+- Get a trust signal (not just a pretty chart) so you know how much weight to put on the
+  forecast before acting on it.
+
+**What it isn't**: a crystal ball. It extrapolates from patterns in your own history — the
+less history you give it, or the more your business is changing, the less reliable the
+forecast gets. The tool will tell you when it doesn't have enough data to trust its own numbers.
+        """
+    )
+
+with st.expander("Data requirements & CSV template"):
+    st.markdown(
+        """
+Your CSV needs:
+
+- **One row per date** — daily, weekly, or monthly, whichever granularity you plan to forecast at.
+- **A date column** — most common formats are auto-detected; anything ambiguous gets flagged
+  for you to double-check.
+- **At least one number to forecast** — conversions, revenue, or both.
+- *(Optional)* any other numeric columns you'd like to use as covariates later (e.g. marketing
+  spend, price, foot traffic) — nothing is used automatically, you opt in further down.
+
+Messy real-world exports are handled automatically — currency symbols, thousands separators,
+semicolon delimiters, stray blank rows/columns — with a plain-language report of what was
+changed, so nothing gets silently altered without you knowing.
+        """
+    )
+    _template_df = pd.DataFrame(
+        {
+            "date": ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04"],
+            "conversions": [120, 135, 128, 142],
+            "revenue": [2400.50, 2690.00, 2550.75, 2810.25],
+            "marketing_spend": [500, 520, 480, 510],
+        }
+    )
+    st.download_button(
+        label="Download CSV template",
+        data=_template_df.to_csv(index=False).encode("utf-8"),
+        file_name="forecasting_template.csv",
+        mime="text/csv",
+        help=(
+            "conversions/revenue are examples — only one is required, and marketing_spend is "
+            "just a sample optional covariate. Replace the example rows with your own data, "
+            "keeping the column headers."
+        ),
+    )
+
 
 # ---------------------------------------------------------------------------
 # Helpers
