@@ -144,18 +144,70 @@ def run_fit(data: pd.DataFrame, config_json: str, future_regressors: pd.DataFram
 FORECAST_LINE_COLOR = "#3987e5"
 FORECAST_BAND_COLOR = "rgba(57, 135, 229, 0.18)"
 ACTUALS_COLOR = "#898781"
+RESIDUAL_POSITIVE_COLOR = "#3987e5"
+RESIDUAL_NEGATIVE_COLOR = "#e34948"
 
 
 def render_result(result, history_by_target: dict):
-    tabs = st.tabs([f"Forecast: {name.capitalize()}" for name in result.targets.keys()])
-    for tab, (target_name, tf) in zip(tabs, result.targets.items()):
+    target_names = list(result.targets.keys())
+    tab_labels = [f"Forecast: {name.capitalize()}" for name in target_names] + ["📄 Full report"]
+    tabs = st.tabs(tab_labels)
+
+    future_tables = {}
+    for tab, target_name in zip(tabs[:-1], target_names):
         with tab:
-            render_target_forecast(target_name, tf, history_by_target)
+            future_tables[target_name] = render_target_forecast(
+                target_name, result.targets[target_name], history_by_target
+            )
+
+    with tabs[-1]:
+        render_full_report(result, future_tables)
 
 
 def render_target_forecast(target_name, tf, history_by_target: dict):
     for w in tf.warnings:
         st.warning(w)
+
+    chart_data = VizEngine.get_forecasting_chart_data(
+        history_by_target[target_name], tf, target_name
+    )
+    hist_df = pd.DataFrame(chart_data["history"])
+    fc_df = pd.DataFrame(chart_data["forecast"])
+    band_df = pd.DataFrame(chart_data["expected_range"])
+
+    last_actual_date = hist_df["ds"].max()
+    future_table = fc_df.merge(band_df, on="ds")
+    future_table = future_table[future_table["ds"] > last_actual_date].copy()
+    future_table = future_table.rename(
+        columns={
+            "ds": "Date",
+            "yhat": "Forecast",
+            "yhat_lower": "Low estimate",
+            "yhat_upper": "High estimate",
+        }
+    )
+    for col in ["Forecast", "Low estimate", "High estimate"]:
+        future_table[col] = future_table[col].round(1)
+
+    total_forecast = future_table["Forecast"].sum()
+    n_periods = len(future_table)
+    prior_fitted = fc_df[fc_df["ds"] <= last_actual_date].tail(n_periods)
+    delta_str = None
+    if len(prior_fitted) == n_periods and prior_fitted["yhat"].sum():
+        prior_total = prior_fitted["yhat"].sum()
+        delta_pct = (total_forecast - prior_total) / prior_total
+        delta_str = f"{delta_pct:+.1%} vs. the previous {n_periods} period(s)"
+
+    st.metric(
+        f"Total forecast, next {n_periods} period(s)",
+        f"{total_forecast:,.0f}",
+        delta=delta_str,
+        help=(
+            "The sum of the forecast over the whole horizon you chose, compared to the "
+            "model's own fit over the same number of periods immediately before — a quick "
+            "read on whether things are trending up or down."
+        ),
+    )
 
     col1, col2, col3 = st.columns(3)
     if tf.cv_metrics is None:
@@ -196,14 +248,7 @@ def render_target_forecast(target_name, tf, history_by_target: dict):
 
     st.markdown(f"**In plain terms:** {tf.conclusion}")
 
-    chart_data = VizEngine.get_forecasting_chart_data(
-        history_by_target[target_name], tf, target_name
-    )
     fig = go.Figure()
-    hist_df = pd.DataFrame(chart_data["history"])
-    fc_df = pd.DataFrame(chart_data["forecast"])
-    band_df = pd.DataFrame(chart_data["expected_range"])
-
     fig.add_trace(
         go.Scatter(
             x=band_df["ds"], y=band_df["yhat_upper"],
@@ -242,19 +287,30 @@ def render_target_forecast(target_name, tf, history_by_target: dict):
     st.plotly_chart(fig, use_container_width=True)
     st.caption(chart_data["chart_caption"])
 
-    last_actual_date = hist_df["ds"].max()
-    future_table = fc_df.merge(band_df, on="ds")
-    future_table = future_table[future_table["ds"] > last_actual_date].copy()
-    future_table = future_table.rename(
-        columns={
-            "ds": "Date",
-            "yhat": "Forecast",
-            "yhat_lower": "Low estimate",
-            "yhat_upper": "High estimate",
-        }
-    )
-    for col in ["Forecast", "Low estimate", "High estimate"]:
-        future_table[col] = future_table[col].round(1)
+    with st.expander("How well does the model fit the past?"):
+        residual_df = hist_df.merge(fc_df, on="ds", how="inner")
+        residual_df["residual"] = residual_df["y"] - residual_df["yhat"]
+        st.caption(
+            "Actual minus forecast for every historical date — bars above zero mean the "
+            "model under-predicted that period, bars below mean it over-predicted. "
+            "Consistent bars on one side (rather than scattered around zero) suggest a "
+            "systematic bias worth a second look."
+        )
+        colors = [
+            RESIDUAL_POSITIVE_COLOR if v >= 0 else RESIDUAL_NEGATIVE_COLOR
+            for v in residual_df["residual"]
+        ]
+        resid_fig = go.Figure(
+            go.Bar(x=residual_df["ds"], y=residual_df["residual"], marker=dict(color=colors))
+        )
+        resid_fig.add_hline(y=0, line=dict(color=ACTUALS_COLOR, width=1))
+        resid_fig.update_layout(
+            margin=dict(l=10, r=10, t=10, b=10),
+            height=260,
+            hovermode="x unified",
+            showlegend=False,
+        )
+        st.plotly_chart(resid_fig, use_container_width=True)
 
     with st.expander(f"Forecast values ({len(future_table)} period(s) ahead)"):
         st.caption("Select cells and copy (Ctrl/Cmd+C), or download as CSV below.")
@@ -286,6 +342,66 @@ def render_target_forecast(target_name, tf, history_by_target: dict):
                 hovermode="x unified",
             )
             st.plotly_chart(comp_fig, use_container_width=True)
+
+    return future_table
+
+
+def render_full_report(result, future_tables: dict):
+    st.write(
+        "A combined summary across every forecasted target — for pasting into a deck, "
+        "email, or spreadsheet."
+    )
+    st.markdown(result.conclusion)
+
+    report_lines = [
+        "# Forecast report",
+        f"Granularity: {result.granularity.value}",
+        "",
+        result.conclusion,
+        "",
+    ]
+    combined_rows = []
+    for target_name, tf in result.targets.items():
+        report_lines.append(f"## {target_name.capitalize()}")
+        report_lines.append(tf.conclusion)
+        if tf.warnings:
+            report_lines.append("")
+            report_lines.append("Warnings:")
+            for w in tf.warnings:
+                report_lines.append(f"- {w}")
+        if tf.cv_metrics is not None:
+            report_lines.append("")
+            report_lines.append(
+                f"Accuracy: MAPE {tf.cv_metrics.mape:.1%}, RMSE {tf.cv_metrics.rmse:.2f}, "
+                f"checked over {tf.cv_metrics.horizon_periods} period(s)."
+            )
+        report_lines.append("")
+
+        table = future_tables[target_name].copy()
+        table.insert(0, "Target", target_name)
+        combined_rows.append(table)
+
+    report_text = "\n".join(report_lines)
+    combined_table = pd.concat(combined_rows, ignore_index=True)
+
+    with st.expander("Combined forecast values (all targets)", expanded=True):
+        st.caption("Select cells and copy (Ctrl/Cmd+C), or download as CSV below.")
+        st.dataframe(combined_table, use_container_width=True, hide_index=True)
+        st.download_button(
+            "Download combined forecast as CSV",
+            data=combined_table.to_csv(index=False).encode("utf-8"),
+            file_name="forecast_report.csv",
+            mime="text/csv",
+            key="download_combined_csv",
+        )
+
+    st.download_button(
+        "Download full report (Markdown)",
+        data=report_text.encode("utf-8"),
+        file_name="forecast_report.md",
+        mime="text/markdown",
+        key="download_report_md",
+    )
 
 
 # ---------------------------------------------------------------------------
