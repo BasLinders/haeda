@@ -32,6 +32,6 @@ def test_demo_data_runs_full_pipeline():
     demo_button.click().run(timeout=120)
 
     assert not at.exception
-    subheaders = [h.value for h in at.subheader]
-    assert "Forecast: conversions" in subheaders
-    assert "Forecast: revenue" in subheaders
+    tab_labels = [t.label for t in at.tabs]
+    assert "Forecast: Conversions" in tab_labels
+    assert "Forecast: Revenue" in tab_labels
