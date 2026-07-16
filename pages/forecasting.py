@@ -161,19 +161,20 @@ def render_result(result, history_by_target: dict):
                 "MAPE (average error %)",
                 f"{tf.cv_metrics.mape:.1%}",
                 help=(
-                    "On average, how far off past forecasts were from what actually happened, "
-                    "as a percentage. Lower is better — e.g. 10% means forecasts were typically "
-                    "off by about a tenth of the actual value."
+                    "MAPE = Mean Absolute Percentage Error. On average, how far off past "
+                    "forecasts were from what actually happened, as a percentage. Lower is "
+                    "better — e.g. 10% means forecasts were typically off by about a tenth of "
+                    "the actual value."
                 ),
             )
             col2.metric(
                 "RMSE (typical error size)",
                 f"{tf.cv_metrics.rmse:.2f}",
                 help=(
-                    "The typical size of the error in the same units as your data (e.g. "
-                    "conversions or currency), with bigger misses counted extra heavily. "
-                    "Lower is better; compare it to the size of your usual numbers to judge "
-                    "whether it's a big deal."
+                    "RMSE = Root Mean Square Error. The typical size of the error in the same "
+                    "units as your data (e.g. conversions or currency), with bigger misses "
+                    "counted extra heavily. Lower is better; compare it to the size of your "
+                    "usual numbers to judge whether it's a big deal."
                 ),
             )
             col3.metric(
