@@ -239,6 +239,31 @@ def render_result(result, history_by_target: dict):
         st.plotly_chart(fig, use_container_width=True)
         st.caption(chart_data["chart_caption"])
 
+        last_actual_date = hist_df["ds"].max()
+        future_table = fc_df.merge(band_df, on="ds")
+        future_table = future_table[future_table["ds"] > last_actual_date].copy()
+        future_table = future_table.rename(
+            columns={
+                "ds": "Date",
+                "yhat": "Forecast",
+                "yhat_lower": "Low estimate",
+                "yhat_upper": "High estimate",
+            }
+        )
+        for col in ["Forecast", "Low estimate", "High estimate"]:
+            future_table[col] = future_table[col].round(1)
+
+        st.write(f"**Forecast values** ({len(future_table)} period(s) ahead)")
+        st.caption("Select cells and copy (Ctrl/Cmd+C), or download as CSV below.")
+        st.dataframe(future_table, use_container_width=True, hide_index=True)
+        st.download_button(
+            "Download forecast as CSV",
+            data=future_table.to_csv(index=False).encode("utf-8"),
+            file_name=f"{target_name}_forecast.csv",
+            mime="text/csv",
+            key=f"download_{target_name}",
+        )
+
         with st.expander("Why does the forecast look like this?"):
             for comp_name, records in tf.components.items():
                 comp_df = pd.DataFrame(records)
@@ -272,6 +297,14 @@ demo_clicked = st.sidebar.button(
         "a marketing-spend covariate."
     ),
 )
+demo_periods = st.sidebar.number_input(
+    "Days ahead to forecast",
+    min_value=7,
+    max_value=365,
+    value=60,
+    step=1,
+    help="How far into the future the demo forecast should extend.",
+)
 if demo_clicked:
     st.session_state["forecasting_mode"] = "demo"
 if "forecasting_mode" not in st.session_state:
@@ -287,7 +320,7 @@ if st.session_state["forecasting_mode"] == "demo":
         "revenue, with custom holidays, a marketing-spend covariate, and accuracy metrics all "
         "switched on. Click 'Back to upload' in the sidebar to use your own CSV instead."
     )
-    dataset = generate_mock_forecast_data(seed=42)
+    dataset = generate_mock_forecast_data(seed=42, periods=int(demo_periods))
     result = run_fit(
         dataset.data, dataset.suggested_config.model_dump_json(), dataset.future_regressors
     )
