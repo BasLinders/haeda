@@ -90,13 +90,38 @@ def render_result(result, history_by_target: dict):
         col1, col2, col3 = st.columns(3)
         if tf.cv_metrics is None:
             st.info(
-                "Not enough history to run cross-validation for this target yet — "
+                "Not enough history yet to check how accurate this forecast tends to be — "
                 "add more historical data to see quality metrics."
             )
         else:
-            col1.metric("MAPE", f"{tf.cv_metrics.mape:.1%}")
-            col2.metric("RMSE", f"{tf.cv_metrics.rmse:.2f}")
-            col3.metric("CV horizon (periods)", tf.cv_metrics.horizon_periods)
+            col1.metric(
+                "MAPE (average error %)",
+                f"{tf.cv_metrics.mape:.1%}",
+                help=(
+                    "On average, how far off past forecasts were from what actually happened, "
+                    "as a percentage. Lower is better — e.g. 10% means forecasts were typically "
+                    "off by about a tenth of the actual value."
+                ),
+            )
+            col2.metric(
+                "RMSE (typical error size)",
+                f"{tf.cv_metrics.rmse:.2f}",
+                help=(
+                    "The typical size of the error in the same units as your data (e.g. "
+                    "conversions or currency), with bigger misses counted extra heavily. "
+                    "Lower is better; compare it to the size of your usual numbers to judge "
+                    "whether it's a big deal."
+                ),
+            )
+            col3.metric(
+                "Accuracy checked over",
+                f"{tf.cv_metrics.horizon_periods} period(s)",
+                help=(
+                    "These accuracy numbers come from replaying history: hiding the most "
+                    "recent stretch of real data, forecasting it as if it were the future, and "
+                    "comparing to what actually happened. This is how long that hidden stretch was."
+                ),
+            )
 
         chart_data = VizEngine.get_forecasting_chart_data(
             history_by_target[target_name], tf, target_name
@@ -158,8 +183,9 @@ st.sidebar.header("Quick start")
 demo_clicked = st.sidebar.button(
     "🎲 Generate demo data",
     help=(
-        "Skip the upload and run the whole pipeline on a synthetic two-year dataset with "
-        "trend, weekly/yearly seasonality, holiday spikes, and a marketing-spend covariate."
+        "Skip the upload and see the whole thing working on made-up sample data: two years "
+        "of history with a growth trend, weekly and yearly patterns, some holiday spikes, and "
+        "a marketing-spend covariate."
     ),
 )
 if demo_clicked:
@@ -173,9 +199,9 @@ if st.session_state["forecasting_mode"] == "demo":
         st.rerun()
 
     st.info(
-        "Showing a one-click demo on synthetic data (two independent target models, custom "
-        "holidays, a marketing-spend covariate, and cross-validation). Upload your own CSV "
-        "instead using the button in the sidebar's back-link, or refresh the page."
+        "Showing a one-click demo on made-up sample data — forecasting both conversions and "
+        "revenue, with custom holidays, a marketing-spend covariate, and accuracy metrics all "
+        "switched on. Click 'Back to upload' in the sidebar to use your own CSV instead."
     )
     dataset = generate_mock_forecast_data(seed=42)
     result = run_fit(
@@ -263,19 +289,29 @@ if conversions_col and revenue_col and conversions_col == revenue_col:
     st.stop()
 
 st.subheader("2. Covariates (optional)")
+st.caption(
+    "A covariate is anything else that might explain the ups and downs in your numbers — "
+    "like a price change, a marketing campaign, or the weather. Adding one can make the "
+    "forecast more accurate if it genuinely affects your numbers."
+)
 non_target_cols = [c for c in all_columns if c not in {date_col, conversions_col, revenue_col}]
 weather_enabled = st.checkbox(
     "Add weather as a covariate",
     help=(
-        "Geocodes a location, pulls historical daily weather for your training period from "
-        "Open-Meteo, and forecasts it for the horizon (falling back to the historical "
-        "day-of-year seasonal average beyond Open-Meteo's ~16-day forecast window)."
+        "Looks up the location you type in below, fetches what the weather actually was on "
+        "each historical date, and predicts what it will be for your forecast period (using "
+        "a real weather forecast for the next couple of weeks, and a typical-for-the-season "
+        "estimate further out than that)."
     ),
 )
 weather_location = None
 geocoded = None
 if weather_enabled:
-    weather_location = st.text_input("Location (city, or 'city, country')", key="weather_location")
+    weather_location = st.text_input(
+        "Location (city, or 'city, country')",
+        key="weather_location",
+        help="Type the city your data is about, e.g. 'Amsterdam' or 'Amsterdam, Netherlands'.",
+    )
     if weather_location:
         try:
             geocoded = geocode_location(weather_location)
@@ -291,12 +327,13 @@ if geocoded:
     available_regressors += ["weather_temp", "weather_precipitation"]
 
 regressors = st.multiselect(
-    "Covariates to include as regressors",
+    "Covariates to include",
     available_regressors,
     help=(
-        "Only your own uploaded columns (and weather, if enabled above) are offered here — "
-        "nothing is added automatically. Good candidates: ticket price changes, marketing "
-        "spend, weather (temp/precipitation), organic vs. paid split, competitor promotions."
+        "Pick any columns from your file (plus weather, if you enabled it above) that you "
+        "think help explain your numbers. Nothing is added automatically — you choose. Good "
+        "candidates: price changes, marketing spend, weather (temperature/rainfall), the mix "
+        "of organic vs. paid traffic, or competitor promotions."
     ),
 )
 
@@ -306,8 +343,10 @@ granularity_label = st.radio(
     ["daily", "weekly", "monthly"],
     horizontal=True,
     help=(
-        "Resampling happens before fitting. Weekly/monthly forecasts lose weekly seasonality "
-        "(it's meaningless once data is aggregated above daily resolution)."
+        "How your data gets grouped before the model looks at it: one point per day, per "
+        "week, or per month. Your daily ups-and-downs pattern (e.g. weekends being quieter) "
+        "only makes sense at daily granularity — grouping into weeks or months averages that "
+        "pattern away, so it's dropped automatically at those settings."
     ),
 )
 history_span_days = (pd.to_datetime(df[date_col], errors="coerce").max() - pd.to_datetime(df[date_col], errors="coerce").min()).days
@@ -318,7 +357,11 @@ if granularity_label == "monthly" and history_span_days < 700:
     )
 
 periods = st.number_input(
-    "Forecast horizon (in the chosen granularity's units)", min_value=1, value=30, step=1
+    "How many days/weeks/months ahead to forecast",
+    min_value=1,
+    value=30,
+    step=1,
+    help="Uses whatever granularity you picked above — e.g. 30 means 30 days if daily, 30 weeks if weekly.",
 )
 
 growth_logistic = st.toggle(
@@ -334,10 +377,18 @@ if growth_logistic:
     target_col_for_cap = conversions_col or revenue_col
     numeric_preview = df[target_col_for_cap].map(clean_numeric_string).dropna()
     default_cap = float(numeric_preview.max()) * 1.5 if not numeric_preview.empty else 100.0
-    cap = st.number_input("Cap (required)", value=default_cap)
+    cap = st.number_input(
+        "Cap (required)",
+        value=default_cap,
+        help="The highest value your numbers could ever realistically reach — the ceiling the forecast will level off toward.",
+    )
     use_floor = st.checkbox("Set a floor too", value=False)
     if use_floor:
-        floor = st.number_input("Floor", value=0.0)
+        floor = st.number_input(
+            "Floor",
+            value=0.0,
+            help="The lowest value your numbers could ever realistically fall to.",
+        )
 
 seasonality_multiplicative = st.toggle(
     "Multiplicative seasonality",
@@ -349,30 +400,64 @@ seasonality_multiplicative = st.toggle(
     ),
 )
 
-with st.expander("Advanced: interval width & cross-validation horizon"):
-    interval_width = st.slider(
-        "Prediction interval width", min_value=0.5, max_value=0.99, value=0.95, step=0.01
+with st.expander("Advanced: how confident should the forecast's shaded range be?"):
+    st.caption(
+        "These two settings are optional — the defaults work well for most cases."
     )
-    custom_cv = st.checkbox("Use a custom cross-validation horizon", value=False)
+    interval_width = st.slider(
+        "How wide should the 'expected range' band be?",
+        min_value=0.5,
+        max_value=0.99,
+        value=0.95,
+        step=0.01,
+        help=(
+            "How sure the model should be that the real future value lands inside the shaded "
+            "band on the chart. 0.95 means 'the model expects the actual number to fall in "
+            "this range 95% of the time' — a wider range plays it safer but is less precise."
+        ),
+    )
+    custom_cv = st.checkbox(
+        "Check accuracy over a different time span than the forecast horizon",
+        value=False,
+        help=(
+            "By default, accuracy (MAPE/RMSE below) is checked by replaying history over a "
+            "span as long as your forecast horizon. Turn this on to check it over a shorter or "
+            "longer span instead."
+        ),
+    )
     cv_horizon_periods = None
     if custom_cv:
-        cv_horizon_periods = st.number_input("CV horizon (periods)", min_value=1, value=int(periods))
+        cv_horizon_periods = st.number_input(
+            "Span to check accuracy over (in the chosen granularity's units)",
+            min_value=1,
+            value=int(periods),
+        )
 
 st.subheader("4. Custom holidays / events (optional)")
 st.caption(
-    "Holidays and custom events tell the model to treat these dates as exceptions to normal "
-    "seasonality — useful for known spikes/dips like event days, closures, or promotions. "
-    "Matched by exact date — if granularity is weekly/monthly, widen the window so it overlaps "
-    "a period boundary or the holiday may have no visible effect."
+    "Tell the model about specific dates that broke your normal pattern — a holiday, a big "
+    "promotion, a store closure — so it treats them as one-off exceptions instead of assuming "
+    "they represent a new normal. Matched to the exact date you enter: if you picked weekly or "
+    "monthly grouping above, make the window (the days before/after) wide enough to reach into "
+    "the week or month it falls in, or the model won't notice it."
 )
 holidays_df = st.data_editor(
     pd.DataFrame(columns=["holiday", "ds", "lower_window", "upper_window"]),
     num_rows="dynamic",
     use_container_width=True,
     column_config={
-        "ds": st.column_config.DateColumn("Date"),
-        "lower_window": st.column_config.NumberColumn("Lower window (<= 0)", step=1),
-        "upper_window": st.column_config.NumberColumn("Upper window (>= 0)", step=1),
+        "holiday": st.column_config.TextColumn("Name", help="A short label, e.g. 'Black Friday' or 'Store closed'."),
+        "ds": st.column_config.DateColumn("Date", help="The exact date the event happened."),
+        "lower_window": st.column_config.NumberColumn(
+            "Days before it also affected",
+            step=1,
+            help="Use a negative number to also flag days leading up to the event, e.g. -2 for two days before. Use 0 for just the date itself.",
+        ),
+        "upper_window": st.column_config.NumberColumn(
+            "Days after it also affected",
+            step=1,
+            help="Use a positive number to also flag days after the event, e.g. 2 for two days after. Use 0 for just the date itself.",
+        ),
     },
 )
 
@@ -401,8 +486,12 @@ if regressors:
         )
         for col in weather_cols:
             future_parts[col] = future_weather_df[col].values
-        with st.expander("Weather regime for forecast dates"):
-            st.caption("Which dates used a real Open-Meteo forecast vs. a historical seasonal average.")
+        with st.expander("Where did the future weather numbers come from?"):
+            st.caption(
+                "'forecast' = an actual weather forecast for that date. 'seasonal_average' = "
+                "no forecast reaches that far out yet, so it uses the typical weather for that "
+                "time of year based on your location's history instead."
+            )
             st.dataframe(regime_df, use_container_width=True)
 
     if uploaded_regressor_cols:
