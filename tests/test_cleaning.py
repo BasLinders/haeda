@@ -43,6 +43,11 @@ class _FakeUpload:
         ("1,234.56", 1234.56),  # US: comma=thousands, dot=decimal
         ("12,5", 12.5),  # bare EU decimal comma
         ("1,234", 1234.0),  # bare thousands comma
+        ("1.234", 1234.0),  # bare EU thousands dot
+        ("1.234.567", 1234567.0),  # bare EU multi-thousands dot
+        ("12.5", 12.5),  # plain US/decimal dot, unaffected
+        ("99.90", 99.90),  # two trailing digits stays a decimal
+        ("1.5", 1.5),  # one trailing digit stays a decimal
         ("12%", 12.0),
         ("(100)", -100.0),
         ("-50", -50.0),
