@@ -259,8 +259,19 @@ def clean_numeric_string(value) -> float | None:
             s = s.replace(",", ".")
         else:
             s = s.replace(",", "")
-    # dot-only strings are left as-is (either a plain decimal or thousands
-    # dots handled by the comma/dot combo branch above)
+    elif has_dot and not has_comma:
+        # Ambiguous: "1.234" (EU thousands) vs "1.234" (a precise decimal).
+        # Mirror the comma heuristic: a single dot with exactly 1-2 trailing
+        # digits reads as a decimal point and is left alone; three trailing
+        # digits (or multiple dots, e.g. "1.234.567") reads as EU thousands
+        # grouping and the dot(s) are stripped.
+        parts = s.split(".")
+        if len(parts) == 2 and len(parts[1]) in (1, 2):
+            pass
+        elif len(parts) >= 2 and all(len(p) == 3 for p in parts[1:]):
+            s = s.replace(".", "")
+        # otherwise (e.g. 3+ trailing digits that aren't a clean thousands
+        # grouping) leave as a plain decimal — the safer default.
 
     try:
         num = float(s)
