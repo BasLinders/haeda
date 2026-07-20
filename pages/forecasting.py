@@ -34,7 +34,7 @@ from forecast_utils.weather import build_weather_covariates, geocode_location
 
 st.set_page_config(page_title="Demand Forecasting", page_icon="🔮", layout="wide")
 
-st.title("🔮 Demand Forecasting")
+st.title("Demand Forecasting")
 st.write(
     "Upload historical conversions/revenue data, configure a forecast, and get a chart with "
     "an uncertainty band, cross-validation quality metrics, and an optional breakdown of what's "
