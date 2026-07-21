@@ -600,16 +600,33 @@ with col_a:
 with col_b:
     forecast_revenue = st.checkbox("Forecast revenue", value=False)
 
-numeric_candidates = [c for c in cleaned.suggested_numeric_cols if c != date_col] or [
-    c for c in all_columns if c != date_col
-]
+numeric_candidates = [c for c in all_columns if c != date_col]
+suggested_numeric = [c for c in cleaned.suggested_numeric_cols if c != date_col]
 
 conversions_col = None
 revenue_col = None
 if forecast_conversions:
-    conversions_col = st.selectbox("Conversions column", numeric_candidates, key="conversions_col_select")
+    default_conv = suggested_numeric[0] if suggested_numeric else (numeric_candidates[0] if numeric_candidates else None)
+    conversions_col = st.selectbox(
+        "Conversions column",
+        numeric_candidates,
+        index=numeric_candidates.index(default_conv) if default_conv in numeric_candidates else 0,
+        key="conversions_col_select",
+    )
 if forecast_revenue:
-    revenue_col = st.selectbox("Revenue column", numeric_candidates, key="revenue_col_select")
+    # Default to a *different* column than conversions when picking revenue's
+    # suggestion, so checking both doesn't default them onto the same column
+    # (which real datasets often only offer one strong numeric candidate for,
+    # since the suggestion heuristic requires an 80%+ clean-parse rate).
+    remaining_suggested = [c for c in suggested_numeric if c != conversions_col]
+    remaining_candidates = [c for c in numeric_candidates if c != conversions_col]
+    default_rev = (remaining_suggested or remaining_candidates or numeric_candidates or [None])[0]
+    revenue_col = st.selectbox(
+        "Revenue column",
+        numeric_candidates,
+        index=numeric_candidates.index(default_rev) if default_rev in numeric_candidates else 0,
+        key="revenue_col_select",
+    )
 
 if not forecast_conversions and not forecast_revenue:
     st.error("Select at least one of 'Forecast conversions' / 'Forecast revenue'.")
