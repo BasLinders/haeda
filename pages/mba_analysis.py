@@ -20,7 +20,7 @@ st.set_page_config(
 MAX_ITEMSETS = 50_000
 # Rows sent to the browser. st.dataframe serialises everything it is given into
 # one websocket message (200 MB limit by default), so we never send all rules.
-MAX_DISPLAY_RULES = 1_000
+MAX_DISPLAY_RULES = 500
 MAX_DOWNLOAD_RULES = 100_000
 # Rows read per CSV chunk. Each chunk is reduced to categorical columns before
 # the next one is read, so peak memory scales with the chunk, not the file.
