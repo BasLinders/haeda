@@ -1,2 +1,5 @@
 -r requirements.txt
 pytest
+# Reference implementation for tests/test_mba_analysis.py; the app itself no
+# longer imports mlxtend (its 0.23.4 fpgrowth densifies sparse input).
+mlxtend==0.23.4
