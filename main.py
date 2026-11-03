@@ -7,8 +7,8 @@ st.set_page_config(
 )
 
 # Main Page UI
-logo_url = "https://cdn.homerun.co/49305/hh-woordmerk-rgb-blue-met-discriptor1666785216logo.png"
-st.image(logo_url, width=200)
+#logo_url = "https://cdn.homerun.co/49305/hh-woordmerk-rgb-blue-met-discriptor1666785216logo.png"
+#st.image(logo_url, width=200)
 
 st.title("Advanced Exploratory Data Analysis")
 st.write("### <span style='color: orange;'>v2.0-beta</span>", unsafe_allow_html=True)
